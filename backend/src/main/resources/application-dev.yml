@@ -1,0 +1,16 @@
+# ============================================================
+# MediSphere — Development Profile (local machine)
+# ============================================================
+# MongoDB and Kafka on localhost (Docker Compose ports exposed)
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_INITDB_ROOT_USERNAME:medisphere}:${MONGO_INITDB_ROOT_PASSWORD:changeme}@localhost:${MONGO_PORT:27017}/${MONGO_DATABASE:medisphere}?authSource=admin
+
+  kafka:
+    bootstrap-servers: localhost:${KAFKA_PORT:9092}
+
+logging:
+  level:
+    com.medisphere: DEBUG

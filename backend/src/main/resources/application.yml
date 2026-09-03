@@ -1,0 +1,38 @@
+# ============================================================
+# MediSphere Cognitive Twin — Base Application Configuration
+# ============================================================
+# Shared settings across all profiles.
+# Profile-specific overrides in application-{profile}.yml
+
+spring:
+  application:
+    name: medisphere-backend
+
+  # MongoDB defaults (overridden per profile)
+  data:
+    mongodb:
+      database: ${MONGO_DATABASE:medisphere}
+
+  # Kafka defaults (overridden per profile)
+  kafka:
+    admin:
+      fail-fast: false
+    consumer:
+      group-id: medisphere-consumer
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Logging
+logging:
+  level:
+    com.medisphere: INFO
+    org.springframework.web: INFO
+    org.springframework.data.mongodb: WARN
+    org.apache.kafka: WARN

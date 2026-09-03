@@ -1,0 +1,35 @@
+# ============================================================
+# MediSphere Cognitive Twin — .gitignore
+# ============================================================
+
+# Environment
+.env
+
+# ---- Java / Maven ----
+backend/target/
+backend/*.jar
+backend/*.war
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# ---- Node / Frontend ----
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ---- Docker ----
+docker-data/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini

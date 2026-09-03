@@ -1,0 +1,18 @@
+# ============================================================
+# MediSphere — Docker Profile (inside Docker Compose network)
+# ============================================================
+# Services referenced by container name instead of localhost
+
+spring:
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_INITDB_ROOT_USERNAME:medisphere}:${MONGO_INITDB_ROOT_PASSWORD:changeme}@mongodb:27017/${MONGO_DATABASE:medisphere}?authSource=admin
+
+  kafka:
+    bootstrap-servers: kafka:29092
+    admin:
+      auto-create: true
+
+logging:
+  level:
+    com.medisphere: INFO
