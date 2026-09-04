@@ -1,0 +1,33 @@
+{
+  "resourceType": "DiagnosticReport",
+  "id": "diag-rep-001",
+  "status": "final",
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074",
+          "code": "CH",
+          "display": "Chemistry"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "24323-8",
+        "display": "Comprehensive metabolic 2000 panel - Serum or Plasma"
+      }
+    ],
+    "text": "Comprehensive Metabolic Panel"
+  },
+  "subject": {
+    "reference": "Patient/pat-001",
+    "display": "John Doe"
+  },
+  "effectiveDateTime": "2026-09-04T08:00:00Z",
+  "issued": "2026-09-04T10:00:00Z",
+  "conclusion": "All metabolic markers and electrolyte panels within normal healthy limits."
+}

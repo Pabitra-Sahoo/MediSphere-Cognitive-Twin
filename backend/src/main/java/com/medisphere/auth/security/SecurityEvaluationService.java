@@ -95,4 +95,20 @@ public class SecurityEvaluationService {
 
         return false;
     }
+
+    /**
+     * Determines whether the currently authenticated principal is authorized to access
+     * a specific FHIR resource document.
+     */
+    public boolean canAccessFhirResource(com.medisphere.fhir.model.FhirResource resource) {
+        if (resource == null) {
+            return false;
+        }
+        if (!StringUtils.hasText(resource.getPatientId())) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            return auth != null && auth.getAuthorities().stream().anyMatch(a ->
+                    "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_PROVIDER".equals(a.getAuthority()));
+        }
+        return canAccessPatient(resource.getPatientId());
+    }
 }

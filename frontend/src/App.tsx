@@ -5,8 +5,18 @@ import { LoginPage } from './auth/LoginPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { authApi } from './api/authApi';
 import { patientApi } from './api/patientApi';
+import { fhirApi } from './api/fhirApi';
 import type { PatientSummary, Patient } from './types/patient';
 import type { HealthTwin } from './types/twin';
+import type { FhirIngestionResult, FhirResourceSummary } from './types/fhir';
+import {
+  SAMPLE_PATIENT_BUNDLE,
+  SAMPLE_VITALS_BUNDLE,
+  SAMPLE_LABS_BUNDLE,
+  SAMPLE_DIAGNOSTIC_REPORT,
+  SAMPLE_CONSENT,
+  SAMPLE_INVALID_RESOURCE,
+} from './api/sampleFhirData';
 import './styles/index.css';
 
 const MainContent: React.FC = () => {
@@ -26,6 +36,12 @@ const MainContent: React.FC = () => {
   const [selectedTwin, setSelectedTwin] = useState<HealthTwin | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [twinLoading, setTwinLoading] = useState(false);
+
+  // Phase 4: FHIR state
+  const [ingestLoading, setIngestLoading] = useState(false);
+  const [ingestResult, setIngestResult] = useState<FhirIngestionResult | null>(null);
+  const [patientFhirResources, setPatientFhirResources] = useState<FhirResourceSummary[]>([]);
+  const [fhirResourcesLoading, setFhirResourcesLoading] = useState(false);
 
   const loadPatients = useCallback(async () => {
     if (!user) return;
@@ -47,6 +63,18 @@ const MainContent: React.FC = () => {
       setPatientsLoading(false);
     }
   }, [user]);
+
+  const loadPatientFhirResources = useCallback(async (patientId: string) => {
+    setFhirResourcesLoading(true);
+    try {
+      const res = await fhirApi.getPatientFhirResources(patientId);
+      setPatientFhirResources(res.content);
+    } catch {
+      setPatientFhirResources([]);
+    } finally {
+      setFhirResourcesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -101,6 +129,7 @@ const MainContent: React.FC = () => {
       ]);
       setSelectedPatient(patientData);
       setSelectedTwin(twinData);
+      loadPatientFhirResources(patientId);
       setTestResult({
         endpoint: `GET /api/patients/${patientId}/twin`,
         status: 200,
@@ -116,6 +145,40 @@ const MainContent: React.FC = () => {
       });
     } finally {
       setTwinLoading(false);
+    }
+  };
+
+  const handleIngestFhir = async (label: string, payload: string) => {
+    setIngestLoading(true);
+    try {
+      const result = await fhirApi.ingest(payload);
+      setIngestResult(result);
+      setTestResult({
+        endpoint: `POST /api/fhir/ingest (${label})`,
+        status: 200,
+        data: result,
+      });
+      // Refresh patient list and current selected patient/twin
+      await loadPatients();
+      if (selectedPatient) {
+        const [updatedPatient, updatedTwin] = await Promise.all([
+          patientApi.getPatient(selectedPatient.id),
+          patientApi.getTwin(selectedPatient.id),
+        ]);
+        setSelectedPatient(updatedPatient);
+        setSelectedTwin(updatedTwin);
+        await loadPatientFhirResources(selectedPatient.id);
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status: number; data: unknown } };
+      setTestResult({
+        endpoint: `POST /api/fhir/ingest (${label})`,
+        status: axiosErr.response?.status || 'Error',
+        data: axiosErr.response?.data || String(err),
+        error: true,
+      });
+    } finally {
+      setIngestLoading(false);
     }
   };
 
@@ -372,6 +435,126 @@ const MainContent: React.FC = () => {
                   </ul>
                 </div>
               </div>
+            </div>
+          )}
+        </section>
+
+        {/* Phase 4: FHIR R4 Ingestion & Synced Resources */}
+        <section className="dashboard-card fhir-card">
+          <div className="card-header">
+            <div>
+              <h2>FHIR R4 Ingestion & Synced Resources</h2>
+              <p className="card-description">
+                Real FHIR R4 parsing, structural validation, domain mapping, and completeness recalculation.
+                {user.role === 'ADMIN'
+                  ? ' (Admin Ingestion Mode Active)'
+                  : ' (Clinical Read-Only Mode — Ingest actions test 403 RBAC)'}
+              </p>
+            </div>
+            {selectedPatient && (
+              <button
+                onClick={() => loadPatientFhirResources(selectedPatient.id)}
+                className="btn btn-secondary btn-sm"
+                disabled={fhirResourcesLoading}
+              >
+                {fhirResourcesLoading ? 'Loading...' : 'Refresh FHIR Resources'}
+              </button>
+            )}
+          </div>
+
+          <div className="fhir-ingest-grid">
+            <button
+              onClick={() => handleIngestFhir('Jane Roe Bundle (pat-002)', SAMPLE_PATIENT_BUNDLE)}
+              className="btn btn-primary btn-sm"
+              disabled={ingestLoading}
+            >
+              Ingest Patient Bundle (Jane Roe pat-002)
+            </button>
+            <button
+              onClick={() => handleIngestFhir('John Doe Vitals (pat-001)', SAMPLE_VITALS_BUNDLE)}
+              className="btn btn-secondary btn-sm"
+              disabled={ingestLoading}
+            >
+              Ingest Vitals Bundle (John Doe pat-001)
+            </button>
+            <button
+              onClick={() => handleIngestFhir('John Doe Labs (pat-001)', SAMPLE_LABS_BUNDLE)}
+              className="btn btn-secondary btn-sm"
+              disabled={ingestLoading}
+            >
+              Ingest Labs Bundle (John Doe pat-001)
+            </button>
+            <button
+              onClick={() => handleIngestFhir('Diagnostic Report (pat-001)', SAMPLE_DIAGNOSTIC_REPORT)}
+              className="btn btn-secondary btn-sm"
+              disabled={ingestLoading}
+            >
+              Ingest Diagnostic Report
+            </button>
+            <button
+              onClick={() => handleIngestFhir('Consent Resource (pat-001)', SAMPLE_CONSENT)}
+              className="btn btn-secondary btn-sm"
+              disabled={ingestLoading}
+            >
+              Ingest Consent Resource
+            </button>
+            <button
+              onClick={() => handleIngestFhir('Malformed Observation (Invalid)', SAMPLE_INVALID_RESOURCE)}
+              className="btn btn-warning btn-sm"
+              disabled={ingestLoading}
+            >
+              Ingest Invalid Sample (Test Rejection)
+            </button>
+          </div>
+
+          {ingestResult && (
+            <div className="fhir-outcome-summary">
+              <span>Last Ingestion Outcome:</span>
+              <span>Processed: <strong>{ingestResult.processedResources}</strong></span>
+              <span className="badge-valid">Valid: {ingestResult.validResources}</span>
+              {ingestResult.invalidResources > 0 && (
+                <span className="badge-invalid">Invalid: {ingestResult.invalidResources}</span>
+              )}
+            </div>
+          )}
+
+          {selectedPatient && (
+            <div className="fhir-resources-table-wrapper">
+              <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                Synced FHIR Resources for {selectedPatient.firstName} {selectedPatient.lastName} ({patientFhirResources.length})
+              </h4>
+              <table className="patients-table">
+                <thead>
+                  <tr>
+                    <th>Resource Type</th>
+                    <th>FHIR Resource ID</th>
+                    <th>Validation Status</th>
+                    <th>Processed At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patientFhirResources.length > 0 ? (
+                    patientFhirResources.map((res) => (
+                      <tr key={res.id}>
+                        <td><strong>{res.resourceType}</strong></td>
+                        <td><code>{res.resourceId}</code></td>
+                        <td>
+                          <span className={res.validationStatus === 'VALID' ? 'badge-valid' : 'badge-invalid'}>
+                            {res.validationStatus}
+                          </span>
+                        </td>
+                        <td>{new Date(res.processedAt).toLocaleTimeString()}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="text-muted text-center">
+                        {fhirResourcesLoading ? 'Loading FHIR resources...' : 'No synced FHIR resources yet for this patient.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </section>

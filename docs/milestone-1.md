@@ -1,17 +1,17 @@
 # Milestone 1 Acceptance Checklist
 
 ## FHIR Integration
-- [ ] FHIR R4 integration implemented
-- [ ] FHIR resources can be received/read
-- [ ] FHIR resources validated
-- [ ] Valid FHIR data mapped into application domain
-- [ ] Invalid FHIR data rejected with useful errors
+- [x] FHIR R4 integration implemented
+- [x] FHIR resources can be received/read
+- [x] FHIR resources validated
+- [x] Valid FHIR data mapped into application domain
+- [x] Invalid FHIR data rejected with useful errors
 
 ## Digital Twin
 - [x] Patient entity implemented
 - [x] HealthTwin entity implemented
 - [x] MongoDB persistence implemented
-- [ ] FHIR data contributes to HealthTwin
+- [x] FHIR data contributes to HealthTwin
 - [x] Required twin fields defined
 - [x] Twin completeness percentage calculated
 - [x] Completeness validation >95% demonstrated

@@ -1,0 +1,16 @@
+{
+  "resourceType": "Observation",
+  "id": "obs-invalid-missing-fields",
+  "subject": {
+    "reference": "Patient/pat-001"
+  },
+  "valueQuantity": {
+    "value": 150.0,
+    "unit": "mg/dL"
+  },
+  "note": [
+    {
+      "text": "Intentionally malformed FHIR observation missing mandatory status and code elements."
+    }
+  ]
+}

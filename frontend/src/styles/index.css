@@ -904,3 +904,48 @@ body {
   color: var(--color-accent-success);
 }
 
+/* FHIR Ingestion & Synced Resources Styles */
+.fhir-ingest-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.badge-valid {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-accent-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: var(--font-size-xs);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.badge-invalid {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: var(--font-size-xs);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.fhir-outcome-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.fhir-resources-table-wrapper {
+  overflow-x: auto;
+  margin-top: var(--space-md);
+}
+
