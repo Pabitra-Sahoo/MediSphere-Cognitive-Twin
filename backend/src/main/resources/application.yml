@@ -29,6 +29,13 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+# JWT Configuration (stateless authentication)
+jwt:
+  # Secret key for HMAC-SHA256 (overridable via JWT_SECRET env var)
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  # Token expiration time in milliseconds (default 24 hours)
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
 # Logging
 logging:
   level:
@@ -36,3 +43,4 @@ logging:
     org.springframework.web: INFO
     org.springframework.data.mongodb: WARN
     org.apache.kafka: WARN
+

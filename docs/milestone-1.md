@@ -27,11 +27,11 @@
 - [ ] Updated data visible in Patient 360
 
 ## Authentication / RBAC
-- [ ] Authentication implemented
-- [ ] Provider role implemented
-- [ ] Patient role implemented
-- [ ] Backend authorization enforced
-- [ ] Unauthorized access rejected
+- [x] Authentication implemented
+- [x] Provider role implemented
+- [x] Patient role implemented
+- [x] Backend authorization enforced
+- [x] Unauthorized access rejected
 
 ## Consent
 - [ ] Consent entity/model implemented
