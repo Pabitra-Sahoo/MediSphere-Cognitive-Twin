@@ -22,7 +22,6 @@ import java.util.Map;
 public class KafkaConfig {
 
     public static final String VITALS_INGEST_TOPIC = "vitals.ingest";
-    public static final String VITALS_VALIDATED_TOPIC = "vitals.validated";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -43,15 +42,7 @@ public class KafkaConfig {
     @Bean
     public NewTopic vitalsIngestTopic() {
         return TopicBuilder.name(VITALS_INGEST_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
-    }
-
-    @Bean
-    public NewTopic vitalsValidatedTopic() {
-        return TopicBuilder.name(VITALS_VALIDATED_TOPIC)
-                .partitions(3)
+                .partitions(1)
                 .replicas(1)
                 .build();
     }

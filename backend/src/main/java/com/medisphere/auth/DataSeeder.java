@@ -58,11 +58,25 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        try {
-            seedUsers();
-            seedPatientsAndTwins();
-        } catch (Exception ex) {
-            log.warn("Could not seed data (MongoDB might be starting or unavailable): {}", ex.getMessage());
+        int maxRetries = 5;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                seedUsers();
+                seedPatientsAndTwins();
+                break;
+            } catch (Exception ex) {
+                if (attempt == maxRetries) {
+                    log.warn("Could not seed data after {} attempts: {}", maxRetries, ex.getMessage(), ex);
+                } else {
+                    log.info("MongoDB connection establishing, retrying seed in 2s (attempt {}/{})...", attempt, maxRetries);
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
         }
     }
 

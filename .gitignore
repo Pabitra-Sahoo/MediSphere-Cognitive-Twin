@@ -21,10 +21,12 @@ backend/.mvn/wrapper/maven-wrapper.jar
 *.swo
 *~
 
-# ---- Node / Frontend ----
+# ---- Node / Frontend / Simulator ----
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+kafka-simulator/node_modules/
+node_modules/
 
 # ---- Docker ----
 docker-data/

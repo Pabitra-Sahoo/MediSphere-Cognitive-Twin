@@ -1,0 +1,18 @@
+{
+  "name": "medisphere-kafka-simulator",
+  "version": "1.0.0",
+  "description": "CLI Wearable Vitals Simulator for MediSphere Kafka Pipeline",
+  "main": "simulator.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node simulator.js",
+    "simulate:single": "node simulator.js --mode=single",
+    "simulate:invalid": "node simulator.js --mode=invalid",
+    "simulate:duplicate": "node simulator.js --mode=duplicate",
+    "simulate:unknown": "node simulator.js --mode=unknown",
+    "simulate:stream": "node simulator.js --mode=stream --count=5 --interval=1500"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  }
+}
