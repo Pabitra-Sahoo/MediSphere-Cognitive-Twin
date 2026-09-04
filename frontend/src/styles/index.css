@@ -732,3 +732,175 @@ body {
   gap: var(--space-md);
   color: var(--color-text-secondary);
 }
+
+/* ============================================================
+   Phase 3: Patient & Digital Health Twin Explorer Styles
+   ============================================================ */
+.patients-table-wrapper {
+  overflow-x: auto;
+  margin-top: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.patients-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-sm);
+}
+
+.patients-table th {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  padding: 0.75rem var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+}
+
+.patients-table td {
+  padding: 0.75rem var(--space-md);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+.patients-table tr:hover td {
+  background-color: var(--color-bg-card-hover);
+}
+
+.completeness-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  height: 20px;
+  width: 140px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.completeness-bar-fill {
+  height: 100%;
+  transition: width 300ms ease;
+}
+
+.fill-pass {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.fill-warn {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.completeness-percent-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Twin Detail Panel */
+.twin-detail-panel {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.twin-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.twin-panel-header h3 {
+  font-size: var(--font-size-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.badge-mrn {
+  font-size: var(--font-size-xs);
+  background-color: rgba(56, 189, 248, 0.15);
+  color: var(--color-accent-primary);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+}
+
+.twin-completeness-badge {
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.text-pass {
+  color: var(--color-accent-success);
+}
+
+.text-warn {
+  color: var(--color-accent-warning);
+}
+
+.fields-count {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.twin-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
+.twin-metric-card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.twin-metric-card h4 {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent-primary);
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: var(--space-xs);
+}
+
+.twin-metric-card ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.twin-metric-card strong {
+  color: var(--color-text-primary);
+}
+
+.status-synced {
+  color: var(--color-accent-success);
+}
+

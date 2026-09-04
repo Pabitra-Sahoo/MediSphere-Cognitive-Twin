@@ -8,13 +8,13 @@
 - [ ] Invalid FHIR data rejected with useful errors
 
 ## Digital Twin
-- [ ] Patient entity implemented
-- [ ] HealthTwin entity implemented
-- [ ] MongoDB persistence implemented
+- [x] Patient entity implemented
+- [x] HealthTwin entity implemented
+- [x] MongoDB persistence implemented
 - [ ] FHIR data contributes to HealthTwin
-- [ ] Required twin fields defined
-- [ ] Twin completeness percentage calculated
-- [ ] Completeness validation >95% demonstrated
+- [x] Required twin fields defined
+- [x] Twin completeness percentage calculated
+- [x] Completeness validation >95% demonstrated
 
 ## Kafka / Vitals
 - [ ] Kafka configured

@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
 import { LoginPage } from './auth/LoginPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { authApi } from './api/authApi';
+import { patientApi } from './api/patientApi';
+import type { PatientSummary, Patient } from './types/patient';
+import type { HealthTwin } from './types/twin';
 import './styles/index.css';
 
-/**
- * Inner component that renders either LoginPage or Authenticated Dashboard.
- */
 const MainContent: React.FC = () => {
-  const { user, token, isAuthenticated, logout, isLoading } = useAuth();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
   const [testResult, setTestResult] = useState<{
     endpoint: string;
     status: number | string;
@@ -19,6 +19,65 @@ const MainContent: React.FC = () => {
   } | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [showAdminSection, setShowAdminSection] = useState(false);
+
+  // Phase 3: Patients & Twin state
+  const [patients, setPatients] = useState<PatientSummary[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [selectedTwin, setSelectedTwin] = useState<HealthTwin | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [twinLoading, setTwinLoading] = useState(false);
+
+  const loadPatients = useCallback(async () => {
+    if (!user) return;
+    setPatientsLoading(true);
+    try {
+      if (user.role === 'ADMIN' || user.role === 'PROVIDER') {
+        const paged = await patientApi.getPatients(0, 10);
+        setPatients(paged.content);
+      } else if (user.role === 'PATIENT' && user.linkedPatientId) {
+        // Patient role: load own patient record
+        const p = await patientApi.getPatient(user.linkedPatientId);
+        setSelectedPatient(p);
+        const twin = await patientApi.getTwin(user.linkedPatientId);
+        setSelectedTwin(twin);
+      }
+    } catch (err) {
+      console.error('Failed to load patients/twin:', err);
+    } finally {
+      setPatientsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let isMounted = true;
+
+    patientApi.getPatients(0, 10)
+      .then((paged) => {
+        if (isMounted && (user?.role === 'ADMIN' || user?.role === 'PROVIDER')) {
+          setPatients(paged.content);
+        }
+      })
+      .catch(() => {
+        // Handled silently or on manual refresh
+      });
+
+    if (user?.role === 'PATIENT' && user.linkedPatientId) {
+      const pid = user.linkedPatientId;
+      Promise.all([patientApi.getPatient(pid), patientApi.getTwin(pid)])
+        .then(([p, twin]) => {
+          if (isMounted) {
+            setSelectedPatient(p);
+            setSelectedTwin(twin);
+          }
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, user]);
 
   if (isLoading) {
     return (
@@ -33,19 +92,46 @@ const MainContent: React.FC = () => {
     return <LoginPage />;
   }
 
-  const handleTestMe = async () => {
+  const handleInspectTwin = async (patientId: string) => {
+    setTwinLoading(true);
+    try {
+      const [patientData, twinData] = await Promise.all([
+        patientApi.getPatient(patientId),
+        patientApi.getTwin(patientId),
+      ]);
+      setSelectedPatient(patientData);
+      setSelectedTwin(twinData);
+      setTestResult({
+        endpoint: `GET /api/patients/${patientId}/twin`,
+        status: 200,
+        data: twinData,
+      });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status: number; data: unknown } };
+      setTestResult({
+        endpoint: `GET /api/patients/${patientId}/twin`,
+        status: axiosErr.response?.status || 'Error',
+        data: axiosErr.response?.data || String(err),
+        error: true,
+      });
+    } finally {
+      setTwinLoading(false);
+    }
+  };
+
+  const handleTestUnassignedAccess = async (targetPatientId: string) => {
     setTestLoading(true);
     try {
-      const data = await authApi.getMe();
+      const data = await patientApi.getPatient(targetPatientId);
       setTestResult({
-        endpoint: 'GET /api/auth/me (Authenticated)',
+        endpoint: `GET /api/patients/${targetPatientId} (RBAC Check)`,
         status: 200,
         data,
       });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status: number; data: unknown } };
       setTestResult({
-        endpoint: 'GET /api/auth/me',
+        endpoint: `GET /api/patients/${targetPatientId} (RBAC Check - Expected 403)`,
         status: axiosErr.response?.status || 'Error',
         data: axiosErr.response?.data || String(err),
         error: true,
@@ -77,35 +163,6 @@ const MainContent: React.FC = () => {
     }
   };
 
-  const handleTestRegister = async () => {
-    setTestLoading(true);
-    const testUsername = `user_${Date.now().toString().slice(-4)}`;
-    try {
-      const newUser = await authApi.register({
-        username: testUsername,
-        email: `${testUsername}@medisphere.local`,
-        password: 'Password@123',
-        role: 'PATIENT',
-        linkedPatientId: 'pat-test',
-      });
-      setTestResult({
-        endpoint: 'POST /api/auth/register (ADMIN Only RBAC Test)',
-        status: 201,
-        data: newUser,
-      });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status: number; data: unknown } };
-      setTestResult({
-        endpoint: 'POST /api/auth/register (ADMIN Only RBAC Test)',
-        status: axiosErr.response?.status || 'Error',
-        data: axiosErr.response?.data || String(err),
-        error: true,
-      });
-    } finally {
-      setTestLoading(false);
-    }
-  };
-
   return (
     <div className="authenticated-layout">
       <header className="main-navbar">
@@ -113,7 +170,7 @@ const MainContent: React.FC = () => {
           <span className="navbar-logo">⚕️</span>
           <div className="navbar-title-group">
             <span className="navbar-title">MediSphere</span>
-            <span className="navbar-version">Cognitive Twin • Phase 2 Auth</span>
+            <span className="navbar-version">Cognitive Twin • Phase 3 Core</span>
           </div>
         </div>
 
@@ -151,11 +208,6 @@ const MainContent: React.FC = () => {
             </div>
 
             <div className="session-field">
-              <label>Email</label>
-              <span>{user.email}</span>
-            </div>
-
-            <div className="session-field">
               <label>Assigned Role</label>
               <span className={`role-pill role-${user.role.toLowerCase()}`}>
                 {user.role}
@@ -187,51 +239,179 @@ const MainContent: React.FC = () => {
               )}
             </div>
           </div>
+        </section>
 
-          {token && (
-            <div className="token-preview">
-              <label>Bearer Token (Signed HMAC-SHA256)</label>
-              <div className="token-box">
-                <code>
-                  {token.substring(0, 36)}...{token.substring(token.length - 20)}
-                </code>
+        {/* Phase 3: Patient & Digital Health Twin Explorer */}
+        <section className="dashboard-card patient-twin-card">
+          <div className="card-header">
+            <div>
+              <h2>Patient & Digital Health Twin Explorer</h2>
+              <p className="card-description">
+                {user.role === 'ADMIN' && 'Showing all system patients (Admin Global View).'}
+                {user.role === 'PROVIDER' && 'Showing patients assigned to Dr. Smith (Provider View).'}
+                {user.role === 'PATIENT' && 'Showing your personal patient record and Digital Twin.'}
+              </p>
+            </div>
+            <button onClick={loadPatients} className="btn btn-secondary btn-sm" disabled={patientsLoading}>
+              {patientsLoading ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+          </div>
+
+          {/* Patient List (for Admin and Provider) */}
+          {(user.role === 'ADMIN' || user.role === 'PROVIDER') && (
+            <div className="patients-table-wrapper">
+              <table className="patients-table">
+                <thead>
+                  <tr>
+                    <th>MRN</th>
+                    <th>Patient Name</th>
+                    <th>Gender</th>
+                    <th>Date of Birth</th>
+                    <th>Twin Completeness</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.length > 0 ? (
+                    patients.map((p) => (
+                      <tr key={p.id}>
+                        <td><code>{p.mrn}</code></td>
+                        <td><strong>{p.firstName} {p.lastName}</strong></td>
+                        <td>{p.gender}</td>
+                        <td>{p.dateOfBirth}</td>
+                        <td>
+                          <div className="completeness-bar-wrapper">
+                            <div
+                              className={`completeness-bar-fill ${p.twinCompleteness >= 95 ? 'fill-pass' : 'fill-warn'}`}
+                              style={{ width: `${p.twinCompleteness}%` }}
+                            ></div>
+                            <span className="completeness-percent-text">{p.twinCompleteness}%</span>
+                          </div>
+                        </td>
+                        <td>
+                          <button
+                            onClick={() => handleInspectTwin(p.id)}
+                            className="btn btn-secondary btn-sm"
+                            disabled={twinLoading}
+                          >
+                            Inspect Twin
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="text-muted text-center">
+                        {patientsLoading ? 'Loading patients...' : 'No assigned patients found.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Selected Patient & Twin Details Panel */}
+          {selectedTwin && selectedPatient && (
+            <div className="twin-detail-panel">
+              <div className="twin-panel-header">
+                <h3>
+                  Digital Health Twin: {selectedPatient.firstName} {selectedPatient.lastName}
+                  <span className="badge-mrn">{selectedPatient.mrn}</span>
+                </h3>
+                <div className="twin-completeness-badge">
+                  <span>Completeness: </span>
+                  <strong className={selectedTwin.completeness.percentage >= 95 ? 'text-pass' : 'text-warn'}>
+                    {selectedTwin.completeness.percentage}%
+                  </strong>
+                  <span className="fields-count">
+                    ({selectedTwin.completeness.populatedFields}/20 logical fields populated)
+                  </span>
+                </div>
+              </div>
+
+              <div className="twin-metrics-grid">
+                <div className="twin-metric-card">
+                  <h4>Demographics (6 fields)</h4>
+                  <ul>
+                    <li>Height: <strong>{selectedTwin.demographics?.height || '—'} cm</strong></li>
+                    <li>Weight: <strong>{selectedTwin.demographics?.weight || '—'} kg</strong></li>
+                    <li>BMI: <strong>{selectedTwin.demographics?.bmi || '—'}</strong></li>
+                    <li>Blood Type: <strong>{selectedTwin.demographics?.bloodType || '—'}</strong></li>
+                  </ul>
+                </div>
+
+                <div className="twin-metric-card">
+                  <h4>Latest Vitals (6 fields)</h4>
+                  <ul>
+                    <li>Heart Rate: <strong>{selectedTwin.latestVitals?.heartRate || '—'} bpm</strong></li>
+                    <li>Blood Pressure: <strong>{selectedTwin.latestVitals?.systolicBP || '—'}/{selectedTwin.latestVitals?.diastolicBP || '—'} mmHg</strong></li>
+                    <li>SpO2: <strong>{selectedTwin.latestVitals?.oxygenSaturation || '—'}%</strong></li>
+                    <li>Temp: <strong>{selectedTwin.latestVitals?.temperature || '—'} °C</strong></li>
+                    <li>Resp. Rate: <strong>{selectedTwin.latestVitals?.respiratoryRate || '—'} /min</strong></li>
+                  </ul>
+                </div>
+
+                <div className="twin-metric-card">
+                  <h4>Latest Labs (4 fields)</h4>
+                  <ul>
+                    <li>Glucose: <strong>{selectedTwin.latestLabs?.glucose || '—'} mg/dL</strong></li>
+                    <li>Cholesterol: <strong>{selectedTwin.latestLabs?.cholesterol || '—'} mg/dL</strong></li>
+                    <li>Hemoglobin: <strong>{selectedTwin.latestLabs?.hemoglobin || '—'} g/dL</strong></li>
+                    <li>Creatinine: <strong>{selectedTwin.latestLabs?.creatinine || '—'} mg/dL</strong></li>
+                  </ul>
+                </div>
+
+                <div className="twin-metric-card">
+                  <h4>Metadata (4 fields)</h4>
+                  <ul>
+                    <li>MRN: <strong>{selectedPatient.mrn}</strong></li>
+                    <li>Emergency Contact: <strong>{selectedPatient.emergencyContact?.name || '—'}</strong></li>
+                    <li>FHIR Status: <strong className="status-synced">{selectedTwin.fhirSyncStatus?.syncStatus || '—'}</strong></li>
+                    <li>Assigned Providers: <strong>{selectedPatient.assignedProviderIds?.join(', ') || 'None'}</strong></li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
         </section>
 
-        {/* RBAC Verification Controls */}
+        {/* RBAC & Security Verification Controls */}
         <section className="dashboard-card rbac-test-card">
           <div className="card-header">
             <h2>RBAC & Security Verification</h2>
             <p className="card-description">
-              Verify backend authorization and role enforcement directly against the Spring Boot API.
+              Live authorization tests proving provider boundary enforcement and patient record isolation.
             </p>
           </div>
 
           <div className="test-actions-bar">
-            <button
-              onClick={handleTestMe}
-              className="btn btn-secondary"
-              disabled={testLoading}
-            >
-              Verify Session (GET /api/auth/me)
-            </button>
+            {user.role === 'PROVIDER' && (
+              <button
+                onClick={() => handleTestUnassignedAccess('pat-003')}
+                className="btn btn-warning"
+                disabled={testLoading}
+              >
+                Test Access to Unassigned Patient (pat-003) → Expect 403
+              </button>
+            )}
+
+            {user.role === 'PATIENT' && (
+              <button
+                onClick={() => handleTestUnassignedAccess('pat-002')}
+                className="btn btn-warning"
+                disabled={testLoading}
+              >
+                Test Access to Another Patient (pat-002) → Expect 403
+              </button>
+            )}
 
             <button
               onClick={handleTestStatus}
               className="btn btn-secondary"
               disabled={testLoading}
             >
-              Check Public Health (GET /api/status)
-            </button>
-
-            <button
-              onClick={handleTestRegister}
-              className={`btn ${user.role === 'ADMIN' ? 'btn-success' : 'btn-warning'}`}
-              disabled={testLoading}
-            >
-              Test Register User (ADMIN Only)
+              Verify Public Status (GET /api/status)
             </button>
 
             <button
@@ -265,7 +445,7 @@ const MainContent: React.FC = () => {
                 <div className="admin-only-content">
                   <span className="admin-check">✓</span>
                   <strong>Admin Privileged Area:</strong> You have the ADMIN role and can
-                  manage platform users and configuration.
+                  manage platform patients, twins, and users.
                 </div>
               </ProtectedRoute>
             </div>
