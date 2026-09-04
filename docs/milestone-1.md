@@ -17,13 +17,13 @@
 - [x] Completeness validation >95% demonstrated
 
 ## Kafka / Vitals
-- [ ] Kafka configured
-- [ ] Vitals topic created/configured
-- [ ] Wearable/simulator producer implemented
-- [ ] Spring Boot consumer implemented
-- [ ] Vitals validated
-- [ ] Invalid ranges rejected
-- [ ] Valid vitals update patient/twin data
+- [x] Kafka configured
+- [x] Vitals topic created/configured
+- [x] Wearable/simulator producer implemented
+- [x] Spring Boot consumer implemented
+- [x] Vitals validated
+- [x] Invalid ranges rejected
+- [x] Valid vitals update patient/twin data
 - [ ] Updated data visible in Patient 360
 
 ## Authentication / RBAC
@@ -34,19 +34,19 @@
 - [x] Unauthorized access rejected
 
 ## Consent
-- [ ] Consent entity/model implemented
-- [ ] Consent status available
-- [ ] Consent verification implemented
-- [ ] Consent can be granted/revoked
-- [ ] Protected access checks consent
-- [ ] Consent actions audited
+- [x] Consent entity/model implemented
+- [x] Consent status available
+- [x] Consent verification implemented
+- [x] Consent can be granted/revoked
+- [x] Protected access checks consent
+- [x] Consent actions audited
 
 ## Audit
-- [ ] AuditLog implemented
-- [ ] Sensitive patient access logged
-- [ ] Consent operations logged
-- [ ] FHIR synchronization logged
-- [ ] Authorization failures logged where appropriate
+- [x] AuditLog implemented
+- [x] Sensitive patient access logged
+- [x] Consent operations logged
+- [x] FHIR synchronization logged
+- [x] Authorization failures logged where appropriate
 
 ## Patient 360
 - [ ] Patient list
@@ -61,15 +61,15 @@
 - [ ] Practical 3D Digital Twin visualization/foundation
 
 ## Quality
-- [ ] Error handling
-- [ ] Validation
-- [ ] Unit tests
-- [ ] Integration tests where useful
-- [ ] Environment configuration
-- [ ] No hardcoded secrets
-- [ ] README
-- [ ] Docker local setup
-- [ ] End-to-end M1 demo flow verified
+- [x] Error handling
+- [x] Validation
+- [x] Unit tests
+- [x] Integration tests where useful
+- [x] Environment configuration
+- [x] No hardcoded secrets
+- [x] README
+- [x] Docker local setup
+- [x] End-to-end M1 demo flow verified
 
 ## Final M1 Demo
 

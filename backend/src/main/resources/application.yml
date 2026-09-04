@@ -12,6 +12,7 @@ spring:
   data:
     mongodb:
       database: ${MONGO_DATABASE:medisphere}
+      auto-index-creation: true
 
   # Kafka defaults (overridden per profile)
   kafka:
