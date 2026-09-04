@@ -2,126 +2,84 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
 import { LoginPage } from './auth/LoginPage';
-import { ProtectedRoute } from './auth/ProtectedRoute';
-import { authApi } from './api/authApi';
 import { patientApi } from './api/patientApi';
-import { fhirApi } from './api/fhirApi';
-import type { PatientSummary, Patient } from './types/patient';
+import type { Patient, PatientSummary } from './types/patient';
 import type { HealthTwin } from './types/twin';
-import type { FhirIngestionResult, FhirResourceSummary } from './types/fhir';
-import {
-  SAMPLE_PATIENT_BUNDLE,
-  SAMPLE_VITALS_BUNDLE,
-  SAMPLE_LABS_BUNDLE,
-  SAMPLE_DIAGNOSTIC_REPORT,
-  SAMPLE_CONSENT,
-  SAMPLE_INVALID_RESOURCE,
-} from './api/sampleFhirData';
+import { Header } from './components/layout/Header';
+import { Sidebar, type NavTab } from './components/layout/Sidebar';
+import { PatientSelector } from './components/patient360/PatientSelector';
+import { PatientSummary as PatientSummaryView } from './components/patient360/PatientSummary';
+import { CompletenessCard } from './components/patient360/CompletenessCard';
+import { DigitalTwinPlaceholder } from './components/patient360/DigitalTwinPlaceholder';
+import { VitalsPanel } from './components/patient360/VitalsPanel';
+import { LabsPanel } from './components/patient360/LabsPanel';
+import { FhirPanel } from './components/patient360/FhirPanel';
+import { ConsentPanel } from './components/patient360/ConsentPanel';
+import { AuditActivityPanel } from './components/patient360/AuditActivityPanel';
+import { DiagnosticsModal } from './components/patient360/DiagnosticsModal';
+import { LoadingState } from './components/common/LoadingState';
+import { ErrorState } from './components/common/ErrorState';
+import { EmptyState } from './components/common/EmptyState';
+import { Card } from './components/common/Card';
 import './styles/index.css';
 
-const MainContent: React.FC = () => {
-  const { user, isAuthenticated, logout, isLoading } = useAuth();
-  const [testResult, setTestResult] = useState<{
-    endpoint: string;
-    status: number | string;
-    data: unknown;
-    error?: boolean;
-  } | null>(null);
-  const [testLoading, setTestLoading] = useState(false);
-  const [showAdminSection, setShowAdminSection] = useState(false);
+const MainShell: React.FC = () => {
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-  // Phase 3: Patients & Twin state
-  const [patients, setPatients] = useState<PatientSummary[]>([]);
+  // Navigation and Modal State
+  const [activeTab, setActiveTab] = useState<NavTab>('overview');
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+
+  // Patient Listing & Selection State
+  const [authorizedPatients, setAuthorizedPatients] = useState<PatientSummary[]>([]);
   const [patientsLoading, setPatientsLoading] = useState(false);
-  const [selectedTwin, setSelectedTwin] = useState<HealthTwin | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+
+  // Selected Patient Record & Digital Twin State
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [twinLoading, setTwinLoading] = useState(false);
+  const [selectedTwin, setSelectedTwin] = useState<HealthTwin | null>(null);
+  const [recordLoading, setRecordLoading] = useState(false);
+  const [recordError, setRecordError] = useState<unknown>(null);
 
-  // Phase 4: FHIR state
-  const [ingestLoading, setIngestLoading] = useState(false);
-  const [ingestResult, setIngestResult] = useState<FhirIngestionResult | null>(null);
-  const [patientFhirResources, setPatientFhirResources] = useState<FhirResourceSummary[]>([]);
-  const [fhirResourcesLoading, setFhirResourcesLoading] = useState(false);
-
-  const loadPatients = useCallback(async () => {
+  /**
+   * Load authorized patients strictly from authoritative backend response:
+   * GET /api/patients
+   */
+  const loadAuthorizedPatients = useCallback(async () => {
     if (!user) return;
     setPatientsLoading(true);
     try {
       if (user.role === 'ADMIN' || user.role === 'PROVIDER') {
-        const paged = await patientApi.getPatients(0, 10);
-        setPatients(paged.content);
+        const paged = await patientApi.getPatients(0, 50);
+        setAuthorizedPatients(paged.content);
+        if (paged.content.length > 0) {
+          setSelectedPatientId((prev) => {
+            const exists = paged.content.some((p) => p.id === prev);
+            return exists ? prev : paged.content[0].id;
+          });
+        }
       } else if (user.role === 'PATIENT' && user.linkedPatientId) {
-        // Patient role: load own patient record
-        const p = await patientApi.getPatient(user.linkedPatientId);
-        setSelectedPatient(p);
-        const twin = await patientApi.getTwin(user.linkedPatientId);
-        setSelectedTwin(twin);
+        setSelectedPatientId(user.linkedPatientId);
       }
     } catch (err) {
-      console.error('Failed to load patients/twin:', err);
+      console.error('Failed to retrieve authorized patients:', err);
     } finally {
       setPatientsLoading(false);
     }
   }, [user]);
 
-  const loadPatientFhirResources = useCallback(async (patientId: string) => {
-    setFhirResourcesLoading(true);
-    try {
-      const res = await fhirApi.getPatientFhirResources(patientId);
-      setPatientFhirResources(res.content);
-    } catch {
-      setPatientFhirResources([]);
-    } finally {
-      setFhirResourcesLoading(false);
+  /**
+   * Fetch patient record and health twin for the currently selected patient ID.
+   * If a 403 or error occurs, clear state immediately to prevent stale data leakage.
+   */
+  const loadPatientDetails = useCallback(async (patientId: string) => {
+    if (!patientId) {
+      setSelectedPatient(null);
+      setSelectedTwin(null);
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let isMounted = true;
-
-    patientApi.getPatients(0, 10)
-      .then((paged) => {
-        if (isMounted && (user?.role === 'ADMIN' || user?.role === 'PROVIDER')) {
-          setPatients(paged.content);
-        }
-      })
-      .catch(() => {
-        // Handled silently or on manual refresh
-      });
-
-    if (user?.role === 'PATIENT' && user.linkedPatientId) {
-      const pid = user.linkedPatientId;
-      Promise.all([patientApi.getPatient(pid), patientApi.getTwin(pid)])
-        .then(([p, twin]) => {
-          if (isMounted) {
-            setSelectedPatient(p);
-            setSelectedTwin(twin);
-          }
-        })
-        .catch(() => {});
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isAuthenticated, user]);
-
-  if (isLoading) {
-    return (
-      <div className="app-loading-screen">
-        <div className="spinner"></div>
-        <p>Loading MediSphere...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return <LoginPage />;
-  }
-
-  const handleInspectTwin = async (patientId: string) => {
-    setTwinLoading(true);
+    setRecordLoading(true);
+    setRecordError(null);
     try {
       const [patientData, twinData] = await Promise.all([
         patientApi.getPatient(patientId),
@@ -129,512 +87,270 @@ const MainContent: React.FC = () => {
       ]);
       setSelectedPatient(patientData);
       setSelectedTwin(twinData);
-      loadPatientFhirResources(patientId);
-      setTestResult({
-        endpoint: `GET /api/patients/${patientId}/twin`,
-        status: 200,
-        data: twinData,
-      });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status: number; data: unknown } };
-      setTestResult({
-        endpoint: `GET /api/patients/${patientId}/twin`,
-        status: axiosErr.response?.status || 'Error',
-        data: axiosErr.response?.data || String(err),
-        error: true,
-      });
+    } catch (err) {
+      // Clear sensitive protected data on authorization error
+      setSelectedPatient(null);
+      setSelectedTwin(null);
+      setRecordError(err);
     } finally {
-      setTwinLoading(false);
+      setRecordLoading(false);
     }
-  };
+  }, []);
 
-  const handleIngestFhir = async (label: string, payload: string) => {
-    setIngestLoading(true);
-    try {
-      const result = await fhirApi.ingest(payload);
-      setIngestResult(result);
-      setTestResult({
-        endpoint: `POST /api/fhir/ingest (${label})`,
-        status: 200,
-        data: result,
+  // Initial load when user logs in
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    let ignore = false;
+    if (user.role === 'ADMIN' || user.role === 'PROVIDER') {
+      patientApi.getPatients(0, 50)
+        .then((paged) => {
+          if (!ignore) {
+            setAuthorizedPatients(paged.content);
+            if (paged.content.length > 0) {
+              setSelectedPatientId((prev) => {
+                const exists = paged.content.some((p) => p.id === prev);
+                return exists ? prev : paged.content[0].id;
+              });
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to retrieve authorized patients:', err);
+        });
+    } else if (user.role === 'PATIENT' && user.linkedPatientId) {
+      const pid = user.linkedPatientId;
+      queueMicrotask(() => {
+        if (!ignore) {
+          setSelectedPatientId(pid);
+        }
       });
-      // Refresh patient list and current selected patient/twin
-      await loadPatients();
-      if (selectedPatient) {
-        const [updatedPatient, updatedTwin] = await Promise.all([
-          patientApi.getPatient(selectedPatient.id),
-          patientApi.getTwin(selectedPatient.id),
-        ]);
-        setSelectedPatient(updatedPatient);
-        setSelectedTwin(updatedTwin);
-        await loadPatientFhirResources(selectedPatient.id);
-      }
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status: number; data: unknown } };
-      setTestResult({
-        endpoint: `POST /api/fhir/ingest (${label})`,
-        status: axiosErr.response?.status || 'Error',
-        data: axiosErr.response?.data || String(err),
-        error: true,
-      });
-    } finally {
-      setIngestLoading(false);
     }
-  };
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthenticated, user]);
 
-  const handleTestUnassignedAccess = async (targetPatientId: string) => {
-    setTestLoading(true);
-    try {
-      const data = await patientApi.getPatient(targetPatientId);
-      setTestResult({
-        endpoint: `GET /api/patients/${targetPatientId} (RBAC Check)`,
-        status: 200,
-        data,
+  // Load details whenever selected patient ID changes
+  useEffect(() => {
+    if (!selectedPatientId) return;
+    let ignore = false;
+    Promise.all([
+      patientApi.getPatient(selectedPatientId),
+      patientApi.getTwin(selectedPatientId),
+    ])
+      .then(([patientData, twinData]) => {
+        if (!ignore) {
+          setSelectedPatient(patientData);
+          setSelectedTwin(twinData);
+          setRecordError(null);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setSelectedPatient(null);
+          setSelectedTwin(null);
+          setRecordError(err);
+        }
       });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status: number; data: unknown } };
-      setTestResult({
-        endpoint: `GET /api/patients/${targetPatientId} (RBAC Check - Expected 403)`,
-        status: axiosErr.response?.status || 'Error',
-        data: axiosErr.response?.data || String(err),
-        error: true,
-      });
-    } finally {
-      setTestLoading(false);
-    }
-  };
+    return () => {
+      ignore = true;
+    };
+  }, [selectedPatientId]);
 
-  const handleTestStatus = async () => {
-    setTestLoading(true);
-    try {
-      const data = await authApi.getStatus();
-      setTestResult({
-        endpoint: 'GET /api/status (Public)',
-        status: 200,
-        data,
-      });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status: number; data: unknown } };
-      setTestResult({
-        endpoint: 'GET /api/status',
-        status: axiosErr.response?.status || 'Error',
-        data: axiosErr.response?.data || String(err),
-        error: true,
-      });
-    } finally {
-      setTestLoading(false);
-    }
-  };
+  // Full-screen loading while checking session
+  if (isLoading) {
+    return (
+      <div className="login-container">
+        <LoadingState message="Initializing MediSphere Cognitive Twin session..." />
+      </div>
+    );
+  }
+
+  // If not authenticated, render login page
+  if (!isAuthenticated || !user) {
+    return <LoginPage />;
+  }
+
+  const patientFullName = selectedPatient
+    ? `${selectedPatient.firstName} ${selectedPatient.lastName}`
+    : selectedPatientId;
 
   return (
-    <div className="authenticated-layout">
-      <header className="main-navbar">
-        <div className="navbar-brand">
-          <span className="navbar-logo">⚕️</span>
-          <div className="navbar-title-group">
-            <span className="navbar-title">MediSphere</span>
-            <span className="navbar-version">Cognitive Twin • Phase 3 Core</span>
-          </div>
-        </div>
+    <div className="shell-wrapper">
+      {/* Top Header */}
+      <Header
+        selectedPatient={selectedPatient}
+        onOpenDiagnostics={() => setIsDiagnosticsOpen(true)}
+      />
 
-        <div className="navbar-user-actions">
-          <div className="user-profile-badge">
-            <span className="user-avatar-icon">👤</span>
-            <span className="user-display-name">{user.username}</span>
-            <span className={`role-pill role-${user.role.toLowerCase()}`}>
-              {user.role}
-            </span>
-          </div>
-          <button onClick={logout} className="btn btn-outline-danger btn-sm">
-            Sign Out
-          </button>
-        </div>
-      </header>
+      <div className="shell-body">
+        {/* Navigation Sidebar */}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          selectedPatientId={selectedPatientId}
+        />
 
-      <main className="dashboard-container">
-        {/* User Identity & SMART Scopes Card */}
-        <section className="dashboard-card session-card">
-          <div className="card-header">
-            <h2>Active Authenticated Session</h2>
-            <span className="status-indicator-live">● Stateless JWT Validated</span>
-          </div>
+        {/* Central Content Area */}
+        <main className="shell-main-content">
+          {/* Patient Selector */}
+          <PatientSelector
+            patients={authorizedPatients}
+            selectedPatientId={selectedPatientId}
+            onSelectPatient={setSelectedPatientId}
+            isLoading={patientsLoading}
+          />
 
-          <div className="session-grid">
-            <div className="session-field">
-              <label>User ID</label>
-              <code>{user.id || 'N/A'}</code>
-            </div>
+          {/* Authorization or Loading States */}
+          {recordError ? (
+            <ErrorState
+              error={recordError}
+              title="Patient Record Access Denied (403 Forbidden)"
+              message="You do not have active authorization or consent to view this patient's digital twin."
+              onRetry={() => loadPatientDetails(selectedPatientId)}
+            />
+          ) : recordLoading ? (
+            <Card>
+              <LoadingState message="Retrieving real-time clinical twin and patient records..." />
+            </Card>
+          ) : !selectedPatient ? (
+            <EmptyState
+              icon="👤"
+              title="No Patient Selected"
+              description="Please select an authorized patient from the dropdown above to inspect their digital twin."
+            />
+          ) : (
+            <>
+              {/* Prominent Patient Summary Banner */}
+              <PatientSummaryView patient={selectedPatient} twin={selectedTwin} />
 
-            <div className="session-field">
-              <label>Username</label>
-              <span>{user.username}</span>
-            </div>
+              {/* View Tab Contents */}
+              {activeTab === 'overview' && (
+                <div className="overview-two-col-grid">
+                  {/* Left Column: 3D Twin Viewport + Completeness Card */}
+                  <div className="overview-left-col">
+                    <DigitalTwinPlaceholder
+                      patientName={patientFullName}
+                      vitals={selectedTwin?.latestVitals}
+                      labs={selectedTwin?.latestLabs}
+                    />
+                    <CompletenessCard completeness={selectedTwin?.completeness} />
+                  </div>
 
-            <div className="session-field">
-              <label>Assigned Role</label>
-              <span className={`role-pill role-${user.role.toLowerCase()}`}>
-                {user.role}
-              </span>
-            </div>
-
-            <div className="session-field">
-              <label>Linked Patient ID</label>
-              <span>{user.linkedPatientId || '—'}</span>
-            </div>
-
-            <div className="session-field">
-              <label>Linked Provider ID</label>
-              <span>{user.linkedProviderId || '—'}</span>
-            </div>
-          </div>
-
-          <div className="scopes-section">
-            <label>SMART-on-FHIR Scopes (Claimed in JWT)</label>
-            <div className="scopes-list">
-              {user.scopes && user.scopes.length > 0 ? (
-                user.scopes.map((scope) => (
-                  <span key={scope} className="scope-tag">
-                    {scope}
-                  </span>
-                ))
-              ) : (
-                <span className="no-scopes">No SMART scopes granted</span>
+                  {/* Right Column: Latest Vitals & Latest Labs Panels */}
+                  <div className="overview-right-col">
+                    <VitalsPanel
+                      patientId={selectedPatient.id}
+                      twinVitals={selectedTwin?.latestVitals}
+                      showHistory={false}
+                    />
+                    <LabsPanel
+                      patientId={selectedPatient.id}
+                      twinLabs={selectedTwin?.latestLabs}
+                      showHistory={false}
+                    />
+                  </div>
+                </div>
               )}
-            </div>
-          </div>
-        </section>
 
-        {/* Phase 3: Patient & Digital Health Twin Explorer */}
-        <section className="dashboard-card patient-twin-card">
-          <div className="card-header">
-            <div>
-              <h2>Patient & Digital Health Twin Explorer</h2>
-              <p className="card-description">
-                {user.role === 'ADMIN' && 'Showing all system patients (Admin Global View).'}
-                {user.role === 'PROVIDER' && 'Showing patients assigned to Dr. Smith (Provider View).'}
-                {user.role === 'PATIENT' && 'Showing your personal patient record and Digital Twin.'}
-              </p>
-            </div>
-            <button onClick={loadPatients} className="btn btn-secondary btn-sm" disabled={patientsLoading}>
-              {patientsLoading ? 'Refreshing...' : 'Refresh Data'}
-            </button>
-          </div>
+              {activeTab === 'patient360' && (
+                <div className="patient-360-full-view">
+                  <CompletenessCard completeness={selectedTwin?.completeness} />
 
-          {/* Patient List (for Admin and Provider) */}
-          {(user.role === 'ADMIN' || user.role === 'PROVIDER') && (
-            <div className="patients-table-wrapper">
-              <table className="patients-table">
-                <thead>
-                  <tr>
-                    <th>MRN</th>
-                    <th>Patient Name</th>
-                    <th>Gender</th>
-                    <th>Date of Birth</th>
-                    <th>Twin Completeness</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {patients.length > 0 ? (
-                    patients.map((p) => (
-                      <tr key={p.id}>
-                        <td><code>{p.mrn}</code></td>
-                        <td><strong>{p.firstName} {p.lastName}</strong></td>
-                        <td>{p.gender}</td>
-                        <td>{p.dateOfBirth}</td>
-                        <td>
-                          <div className="completeness-bar-wrapper">
-                            <div
-                              className={`completeness-bar-fill ${p.twinCompleteness >= 95 ? 'fill-pass' : 'fill-warn'}`}
-                              style={{ width: `${p.twinCompleteness}%` }}
-                            ></div>
-                            <span className="completeness-percent-text">{p.twinCompleteness}%</span>
-                          </div>
-                        </td>
-                        <td>
-                          <button
-                            onClick={() => handleInspectTwin(p.id)}
-                            className="btn btn-secondary btn-sm"
-                            disabled={twinLoading}
-                          >
-                            Inspect Twin
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="text-muted text-center">
-                        {patientsLoading ? 'Loading patients...' : 'No assigned patients found.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  <Card
+                    title="Digital Twin Demographics (6 Logical Fields)"
+                    subtitle="Biometric baseline parameters for digital twin modeling"
+                  >
+                    <div className="twin-metrics-grid">
+                      <div className="twin-metric-card">
+                        <h4>Height</h4>
+                        <span>{selectedTwin?.demographics?.height ? `${selectedTwin.demographics.height} cm` : '—'}</span>
+                      </div>
+                      <div className="twin-metric-card">
+                        <h4>Weight</h4>
+                        <span>{selectedTwin?.demographics?.weight ? `${selectedTwin.demographics.weight} kg` : '—'}</span>
+                      </div>
+                      <div className="twin-metric-card">
+                        <h4>BMI</h4>
+                        <span>{selectedTwin?.demographics?.bmi ? selectedTwin.demographics.bmi : '—'}</span>
+                      </div>
+                      <div className="twin-metric-card">
+                        <h4>Blood Type</h4>
+                        <span>{selectedTwin?.demographics?.bloodType || '—'}</span>
+                      </div>
+                      <div className="twin-metric-card">
+                        <h4>Age</h4>
+                        <span>{selectedTwin?.demographics?.age !== undefined ? `${selectedTwin.demographics.age} yrs` : '—'}</span>
+                      </div>
+                      <div className="twin-metric-card">
+                        <h4>Gender</h4>
+                        <span>{selectedTwin?.demographics?.gender || '—'}</span>
+                      </div>
+                    </div>
+                  </Card>
 
-          {/* Selected Patient & Twin Details Panel */}
-          {selectedTwin && selectedPatient && (
-            <div className="twin-detail-panel">
-              <div className="twin-panel-header">
-                <h3>
-                  Digital Health Twin: {selectedPatient.firstName} {selectedPatient.lastName}
-                  <span className="badge-mrn">{selectedPatient.mrn}</span>
-                </h3>
-                <div className="twin-completeness-badge">
-                  <span>Completeness: </span>
-                  <strong className={selectedTwin.completeness.percentage >= 95 ? 'text-pass' : 'text-warn'}>
-                    {selectedTwin.completeness.percentage}%
-                  </strong>
-                  <span className="fields-count">
-                    ({selectedTwin.completeness.populatedFields}/20 logical fields populated)
-                  </span>
+                  <div className="overview-two-col-grid">
+                    <VitalsPanel
+                      patientId={selectedPatient.id}
+                      twinVitals={selectedTwin?.latestVitals}
+                      showHistory={false}
+                    />
+                    <LabsPanel
+                      patientId={selectedPatient.id}
+                      twinLabs={selectedTwin?.latestLabs}
+                      showHistory={false}
+                    />
+                  </div>
                 </div>
-              </div>
-
-              <div className="twin-metrics-grid">
-                <div className="twin-metric-card">
-                  <h4>Demographics (6 fields)</h4>
-                  <ul>
-                    <li>Height: <strong>{selectedTwin.demographics?.height || '—'} cm</strong></li>
-                    <li>Weight: <strong>{selectedTwin.demographics?.weight || '—'} kg</strong></li>
-                    <li>BMI: <strong>{selectedTwin.demographics?.bmi || '—'}</strong></li>
-                    <li>Blood Type: <strong>{selectedTwin.demographics?.bloodType || '—'}</strong></li>
-                  </ul>
-                </div>
-
-                <div className="twin-metric-card">
-                  <h4>Latest Vitals (6 fields)</h4>
-                  <ul>
-                    <li>Heart Rate: <strong>{selectedTwin.latestVitals?.heartRate || '—'} bpm</strong></li>
-                    <li>Blood Pressure: <strong>{selectedTwin.latestVitals?.systolicBP || '—'}/{selectedTwin.latestVitals?.diastolicBP || '—'} mmHg</strong></li>
-                    <li>SpO2: <strong>{selectedTwin.latestVitals?.oxygenSaturation || '—'}%</strong></li>
-                    <li>Temp: <strong>{selectedTwin.latestVitals?.temperature || '—'} °C</strong></li>
-                    <li>Resp. Rate: <strong>{selectedTwin.latestVitals?.respiratoryRate || '—'} /min</strong></li>
-                  </ul>
-                </div>
-
-                <div className="twin-metric-card">
-                  <h4>Latest Labs (4 fields)</h4>
-                  <ul>
-                    <li>Glucose: <strong>{selectedTwin.latestLabs?.glucose || '—'} mg/dL</strong></li>
-                    <li>Cholesterol: <strong>{selectedTwin.latestLabs?.cholesterol || '—'} mg/dL</strong></li>
-                    <li>Hemoglobin: <strong>{selectedTwin.latestLabs?.hemoglobin || '—'} g/dL</strong></li>
-                    <li>Creatinine: <strong>{selectedTwin.latestLabs?.creatinine || '—'} mg/dL</strong></li>
-                  </ul>
-                </div>
-
-                <div className="twin-metric-card">
-                  <h4>Metadata (4 fields)</h4>
-                  <ul>
-                    <li>MRN: <strong>{selectedPatient.mrn}</strong></li>
-                    <li>Emergency Contact: <strong>{selectedPatient.emergencyContact?.name || '—'}</strong></li>
-                    <li>FHIR Status: <strong className="status-synced">{selectedTwin.fhirSyncStatus?.syncStatus || '—'}</strong></li>
-                    <li>Assigned Providers: <strong>{selectedPatient.assignedProviderIds?.join(', ') || 'None'}</strong></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Phase 4: FHIR R4 Ingestion & Synced Resources */}
-        <section className="dashboard-card fhir-card">
-          <div className="card-header">
-            <div>
-              <h2>FHIR R4 Ingestion & Synced Resources</h2>
-              <p className="card-description">
-                Real FHIR R4 parsing, structural validation, domain mapping, and completeness recalculation.
-                {user.role === 'ADMIN'
-                  ? ' (Admin Ingestion Mode Active)'
-                  : ' (Clinical Read-Only Mode — Ingest actions test 403 RBAC)'}
-              </p>
-            </div>
-            {selectedPatient && (
-              <button
-                onClick={() => loadPatientFhirResources(selectedPatient.id)}
-                className="btn btn-secondary btn-sm"
-                disabled={fhirResourcesLoading}
-              >
-                {fhirResourcesLoading ? 'Loading...' : 'Refresh FHIR Resources'}
-              </button>
-            )}
-          </div>
-
-          <div className="fhir-ingest-grid">
-            <button
-              onClick={() => handleIngestFhir('Jane Roe Bundle (pat-002)', SAMPLE_PATIENT_BUNDLE)}
-              className="btn btn-primary btn-sm"
-              disabled={ingestLoading}
-            >
-              Ingest Patient Bundle (Jane Roe pat-002)
-            </button>
-            <button
-              onClick={() => handleIngestFhir('John Doe Vitals (pat-001)', SAMPLE_VITALS_BUNDLE)}
-              className="btn btn-secondary btn-sm"
-              disabled={ingestLoading}
-            >
-              Ingest Vitals Bundle (John Doe pat-001)
-            </button>
-            <button
-              onClick={() => handleIngestFhir('John Doe Labs (pat-001)', SAMPLE_LABS_BUNDLE)}
-              className="btn btn-secondary btn-sm"
-              disabled={ingestLoading}
-            >
-              Ingest Labs Bundle (John Doe pat-001)
-            </button>
-            <button
-              onClick={() => handleIngestFhir('Diagnostic Report (pat-001)', SAMPLE_DIAGNOSTIC_REPORT)}
-              className="btn btn-secondary btn-sm"
-              disabled={ingestLoading}
-            >
-              Ingest Diagnostic Report
-            </button>
-            <button
-              onClick={() => handleIngestFhir('Consent Resource (pat-001)', SAMPLE_CONSENT)}
-              className="btn btn-secondary btn-sm"
-              disabled={ingestLoading}
-            >
-              Ingest Consent Resource
-            </button>
-            <button
-              onClick={() => handleIngestFhir('Malformed Observation (Invalid)', SAMPLE_INVALID_RESOURCE)}
-              className="btn btn-warning btn-sm"
-              disabled={ingestLoading}
-            >
-              Ingest Invalid Sample (Test Rejection)
-            </button>
-          </div>
-
-          {ingestResult && (
-            <div className="fhir-outcome-summary">
-              <span>Last Ingestion Outcome:</span>
-              <span>Processed: <strong>{ingestResult.processedResources}</strong></span>
-              <span className="badge-valid">Valid: {ingestResult.validResources}</span>
-              {ingestResult.invalidResources > 0 && (
-                <span className="badge-invalid">Invalid: {ingestResult.invalidResources}</span>
               )}
-            </div>
+
+              {activeTab === 'vitals' && (
+                <VitalsPanel
+                  patientId={selectedPatient.id}
+                  twinVitals={selectedTwin?.latestVitals}
+                  showHistory={true}
+                />
+              )}
+
+              {activeTab === 'labs' && (
+                <LabsPanel
+                  patientId={selectedPatient.id}
+                  twinLabs={selectedTwin?.latestLabs}
+                  showHistory={true}
+                />
+              )}
+
+              {activeTab === 'fhir' && (
+                <FhirPanel
+                  patientId={selectedPatient.id}
+                  syncStatus={selectedTwin?.fhirSyncStatus}
+                  onIngestionSuccess={() => {
+                    loadAuthorizedPatients();
+                    loadPatientDetails(selectedPatient.id);
+                  }}
+                />
+              )}
+
+              {activeTab === 'consent' && (
+                <ConsentPanel
+                  patientId={selectedPatient.id}
+                  patientName={patientFullName}
+                />
+              )}
+
+              {activeTab === 'audit' && (
+                <AuditActivityPanel patientId={selectedPatient.id} />
+              )}
+            </>
           )}
+        </main>
+      </div>
 
-          {selectedPatient && (
-            <div className="fhir-resources-table-wrapper">
-              <h4 style={{ marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                Synced FHIR Resources for {selectedPatient.firstName} {selectedPatient.lastName} ({patientFhirResources.length})
-              </h4>
-              <table className="patients-table">
-                <thead>
-                  <tr>
-                    <th>Resource Type</th>
-                    <th>FHIR Resource ID</th>
-                    <th>Validation Status</th>
-                    <th>Processed At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {patientFhirResources.length > 0 ? (
-                    patientFhirResources.map((res) => (
-                      <tr key={res.id}>
-                        <td><strong>{res.resourceType}</strong></td>
-                        <td><code>{res.resourceId}</code></td>
-                        <td>
-                          <span className={res.validationStatus === 'VALID' ? 'badge-valid' : 'badge-invalid'}>
-                            {res.validationStatus}
-                          </span>
-                        </td>
-                        <td>{new Date(res.processedAt).toLocaleTimeString()}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="text-muted text-center">
-                        {fhirResourcesLoading ? 'Loading FHIR resources...' : 'No synced FHIR resources yet for this patient.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* RBAC & Security Verification Controls */}
-        <section className="dashboard-card rbac-test-card">
-          <div className="card-header">
-            <h2>RBAC & Security Verification</h2>
-            <p className="card-description">
-              Live authorization tests proving provider boundary enforcement and patient record isolation.
-            </p>
-          </div>
-
-          <div className="test-actions-bar">
-            {user.role === 'PROVIDER' && (
-              <button
-                onClick={() => handleTestUnassignedAccess('pat-003')}
-                className="btn btn-warning"
-                disabled={testLoading}
-              >
-                Test Access to Unassigned Patient (pat-003) → Expect 403
-              </button>
-            )}
-
-            {user.role === 'PATIENT' && (
-              <button
-                onClick={() => handleTestUnassignedAccess('pat-002')}
-                className="btn btn-warning"
-                disabled={testLoading}
-              >
-                Test Access to Another Patient (pat-002) → Expect 403
-              </button>
-            )}
-
-            <button
-              onClick={handleTestStatus}
-              className="btn btn-secondary"
-              disabled={testLoading}
-            >
-              Verify Public Status (GET /api/status)
-            </button>
-
-            <button
-              onClick={() => setShowAdminSection((prev) => !prev)}
-              className="btn btn-outline"
-            >
-              {showAdminSection ? 'Hide' : 'Test'} ProtectedRoute Guard
-            </button>
-          </div>
-
-          {testResult && (
-            <div
-              className={`test-result-box ${
-                testResult.error ? 'result-error' : 'result-success'
-              }`}
-            >
-              <div className="result-header">
-                <strong>{testResult.endpoint}</strong>
-                <span className="result-code">HTTP {testResult.status}</span>
-              </div>
-              <pre className="result-json">
-                {JSON.stringify(testResult.data, null, 2)}
-              </pre>
-            </div>
-          )}
-
-          {showAdminSection && (
-            <div className="admin-protected-preview">
-              <h3>Client-Side ProtectedRoute Component Test:</h3>
-              <ProtectedRoute allowedRoles={['ADMIN']}>
-                <div className="admin-only-content">
-                  <span className="admin-check">✓</span>
-                  <strong>Admin Privileged Area:</strong> You have the ADMIN role and can
-                  manage platform patients, twins, and users.
-                </div>
-              </ProtectedRoute>
-            </div>
-          )}
-        </section>
-      </main>
+      {/* Secondary System Diagnostics Modal (Preserving M1 RBAC Tests) */}
+      <DiagnosticsModal
+        isOpen={isDiagnosticsOpen}
+        onClose={() => setIsDiagnosticsOpen(false)}
+      />
     </div>
   );
 };
@@ -642,7 +358,7 @@ const MainContent: React.FC = () => {
 export function App() {
   return (
     <AuthProvider>
-      <MainContent />
+      <MainShell />
     </AuthProvider>
   );
 }
