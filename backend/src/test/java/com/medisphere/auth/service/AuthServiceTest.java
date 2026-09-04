@@ -36,13 +36,16 @@ class AuthServiceTest {
     @Mock
     private JwtTokenProvider tokenProvider;
 
+    @Mock
+    private com.medisphere.audit.service.AuditService auditService;
+
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(userRepository, passwordEncoder, tokenProvider);
+        authService = new AuthService(userRepository, passwordEncoder, tokenProvider, auditService);
     }
 
     @Test

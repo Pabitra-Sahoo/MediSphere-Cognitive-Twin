@@ -63,7 +63,7 @@ public class FhirController {
      * Enforces fine-grained patient/provider/admin RBAC.
      */
     @GetMapping(value = "/api/patients/{patientId}/fhir-resources", produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@sec.canAccessPatient(#patientId)")
+    @PreAuthorize("@sec.canAccessPatientWithConsent(#patientId)")
     public ResponseEntity<Map<String, Object>> getPatientFhirResources(
             @PathVariable String patientId,
             @RequestParam(required = false) String resourceType) {

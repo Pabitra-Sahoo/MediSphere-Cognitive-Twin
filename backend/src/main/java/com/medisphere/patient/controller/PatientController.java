@@ -1,5 +1,7 @@
 package com.medisphere.patient.controller;
 
+import com.medisphere.audit.annotation.Audited;
+import com.medisphere.audit.model.AuditAction;
 import com.medisphere.common.dto.PagedResponse;
 import com.medisphere.patient.dto.PatientDTO;
 import com.medisphere.patient.dto.PatientSummaryDTO;
@@ -56,7 +58,8 @@ public class PatientController {
      * Restricted to assigned providers, the patient themselves, and admins.
      */
     @GetMapping("/{patientId}")
-    @PreAuthorize("@sec.canAccessPatient(#patientId)")
+    @PreAuthorize("@sec.canAccessPatientWithConsent(#patientId)")
+    @Audited(action = AuditAction.VIEW_PATIENT, resourceType = "PATIENT")
     public ResponseEntity<PatientDTO> getPatientById(@PathVariable String patientId) {
         PatientDTO patient = patientService.getPatientById(patientId);
         return ResponseEntity.ok(patient);

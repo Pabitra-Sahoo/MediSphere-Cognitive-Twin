@@ -1,5 +1,7 @@
 package com.medisphere.twin.controller;
 
+import com.medisphere.audit.annotation.Audited;
+import com.medisphere.audit.model.AuditAction;
 import com.medisphere.twin.dto.HealthTwinDTO;
 import com.medisphere.twin.dto.TwinCompletenessDTO;
 import com.medisphere.twin.service.HealthTwinService;
@@ -25,10 +27,11 @@ public class HealthTwinController {
 
     /**
      * Retrieves the complete Digital Health Twin for a patient.
-     * Restricted to assigned providers, the patient themselves, and admins.
+     * Restricted to assigned providers (with active consent), the patient themselves, and admins.
      */
     @GetMapping
-    @PreAuthorize("@sec.canAccessPatient(#patientId)")
+    @PreAuthorize("@sec.canAccessPatientWithConsent(#patientId)")
+    @Audited(action = AuditAction.VIEW_TWIN, resourceType = "TWIN")
     public ResponseEntity<HealthTwinDTO> getTwin(@PathVariable String patientId) {
         HealthTwinDTO twin = healthTwinService.getTwinByPatientId(patientId);
         return ResponseEntity.ok(twin);

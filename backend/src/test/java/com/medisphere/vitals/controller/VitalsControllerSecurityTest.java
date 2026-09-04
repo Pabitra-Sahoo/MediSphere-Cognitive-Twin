@@ -14,6 +14,8 @@ import com.medisphere.vitals.dto.VitalsDTO;
 import com.medisphere.vitals.dto.VitalsEventDTO;
 import com.medisphere.vitals.dto.VitalsSimulateRequest;
 import com.medisphere.vitals.service.VitalsService;
+import com.medisphere.audit.service.AuditService;
+import com.medisphere.consent.service.ConsentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +61,12 @@ class VitalsControllerSecurityTest {
 
     @MockitoBean
     private PatientRepository patientRepository;
+
+    @MockitoBean
+    private ConsentService consentService;
+
+    @MockitoBean
+    private AuditService auditService;
 
     // ==========================================
     // 1. POST /api/vitals/simulate RBAC
@@ -164,6 +172,7 @@ class VitalsControllerSecurityTest {
         patient.setId("pat-001");
         patient.setAssignedProviderIds(List.of("prov-001"));
         when(patientRepository.findById("pat-001")).thenReturn(Optional.of(patient));
+        when(consentService.hasActiveConsent("pat-001", "prov-001")).thenReturn(true);
 
         when(vitalsService.getVitalsHistory(eq("pat-001"), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of()));

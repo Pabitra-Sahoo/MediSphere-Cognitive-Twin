@@ -1,5 +1,8 @@
 package com.medisphere.auth.service;
 
+import com.medisphere.audit.model.AuditAction;
+import com.medisphere.audit.model.AuditOutcome;
+import com.medisphere.audit.service.AuditService;
 import com.medisphere.auth.dto.LoginRequest;
 import com.medisphere.auth.dto.LoginResponse;
 import com.medisphere.auth.dto.RegisterRequest;
@@ -28,13 +31,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final AuditService auditService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtTokenProvider tokenProvider) {
+                       JwtTokenProvider tokenProvider,
+                       AuditService auditService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.auditService = auditService;
     }
 
     /**
@@ -42,24 +48,45 @@ public class AuthService {
      */
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> {
-                    log.warn("Login attempt failed: user '{}' not found", request.getUsername());
-                    return new BadCredentialsException("Invalid username or password");
-                });
+                .orElse(null);
+
+        if (user == null) {
+            log.warn("Login attempt failed: user '{}' not found", request.getUsername());
+            auditService.logAnonymous(request.getUsername(), AuditAction.USER_LOGIN_FAILED,
+                    "AUTH", null, null, "Failed login attempt: username not found", AuditOutcome.FAILURE);
+            throw new BadCredentialsException("Invalid username or password");
+        }
 
         if (!user.isActive()) {
             log.warn("Login attempt failed: user '{}' is inactive", request.getUsername());
+            auditService.logAnonymous(request.getUsername(), AuditAction.USER_LOGIN_FAILED,
+                    "AUTH", user.getId(), user.getLinkedPatientId(), "Failed login attempt: user is inactive", AuditOutcome.FAILURE);
             throw new BadCredentialsException("User account is inactive");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             log.warn("Login attempt failed: invalid password for user '{}'", request.getUsername());
+            auditService.logAnonymous(request.getUsername(), AuditAction.USER_LOGIN_FAILED,
+                    "AUTH", user.getId(), user.getLinkedPatientId(), "Failed login attempt: invalid password", AuditOutcome.FAILURE);
             throw new BadCredentialsException("Invalid username or password");
         }
 
         String token = tokenProvider.generateToken(user);
         UserDTO userDTO = toDTO(user);
         long expiresInSeconds = tokenProvider.getExpirationTimeMs() / 1000;
+
+        auditService.log(
+                user.getId(),
+                user.getUsername(),
+                user.getRole().name(),
+                AuditAction.USER_LOGIN,
+                "AUTH",
+                user.getId(),
+                user.getLinkedPatientId(),
+                "User successfully logged in with role " + user.getRole(),
+                AuditOutcome.SUCCESS,
+                null
+        );
 
         log.info("User '{}' successfully authenticated with role [{}]", user.getUsername(), user.getRole());
         return new LoginResponse(token, "Bearer", expiresInSeconds, userDTO);

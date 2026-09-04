@@ -54,6 +54,12 @@ class FhirIngestionServiceTest {
     @Mock
     private LabResultRepository labResultRepository;
 
+    @Mock
+    private com.medisphere.consent.repository.ConsentRepository consentRepository;
+
+    @Mock
+    private com.medisphere.audit.service.AuditService auditService;
+
     private HealthTwinService healthTwinService;
     private FhirIngestionService ingestionService;
 
@@ -76,7 +82,9 @@ class FhirIngestionServiceTest {
                 patientService,
                 twinRepository,
                 healthTwinService,
-                labResultRepository
+                labResultRepository,
+                consentRepository,
+                auditService
         );
     }
 

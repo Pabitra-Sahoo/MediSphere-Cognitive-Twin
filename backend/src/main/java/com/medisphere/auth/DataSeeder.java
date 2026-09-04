@@ -3,6 +3,9 @@ package com.medisphere.auth;
 import com.medisphere.auth.model.Role;
 import com.medisphere.auth.model.User;
 import com.medisphere.auth.repository.UserRepository;
+import com.medisphere.consent.model.Consent;
+import com.medisphere.consent.model.ConsentStatus;
+import com.medisphere.consent.repository.ConsentRepository;
 import com.medisphere.patient.model.Address;
 import com.medisphere.patient.model.EmergencyContact;
 import com.medisphere.patient.model.InsuranceInfo;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 /**
@@ -31,6 +35,7 @@ import java.util.List;
  *   <li>Demo users (Admin, Provider, Patient) with BCrypt-hashed passwords.</li>
  *   <li>Demo patients (pat-001, pat-002, pat-003) with assigned provider mappings.</li>
  *   <li>Corresponding Digital Health Twins with 100% completeness (all 20 logical fields populated).</li>
+ *   <li>Active consent grant for pat-001 -> prov-001 (dr_smith).</li>
  * </ul>
  */
 @Component
@@ -43,17 +48,20 @@ public class DataSeeder implements CommandLineRunner {
     private final HealthTwinRepository twinRepository;
     private final HealthTwinService healthTwinService;
     private final PasswordEncoder passwordEncoder;
+    private final ConsentRepository consentRepository;
 
     public DataSeeder(UserRepository userRepository,
                       PatientRepository patientRepository,
                       HealthTwinRepository twinRepository,
                       HealthTwinService healthTwinService,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                      ConsentRepository consentRepository) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
         this.twinRepository = twinRepository;
         this.healthTwinService = healthTwinService;
         this.passwordEncoder = passwordEncoder;
+        this.consentRepository = consentRepository;
     }
 
     @Override
@@ -63,6 +71,7 @@ public class DataSeeder implements CommandLineRunner {
             try {
                 seedUsers();
                 seedPatientsAndTwins();
+                seedConsents();
                 break;
             } catch (Exception ex) {
                 if (attempt == maxRetries) {
@@ -193,5 +202,28 @@ public class DataSeeder implements CommandLineRunner {
 
         // Calculate and verify 100% completeness
         healthTwinService.recalculateAndSave(twin, patient);
+    }
+
+    private void seedConsents() {
+        if (consentRepository.count() == 0) {
+            log.info("Seeding demo patient consents...");
+
+            Consent consent1 = new Consent(
+                    "pat-001",
+                    "prov-001",
+                    "treatment",
+                    ConsentStatus.GRANTED,
+                    Instant.now(),
+                    Instant.now().plus(365, ChronoUnit.DAYS),
+                    "Primary care and cognitive twin data sharing authorization"
+            );
+            consentRepository.save(consent1);
+
+            log.info("==================================================================");
+            log.info("Demo Consents Seeded:");
+            log.info("  - pat-001 (John Doe) -> prov-001 (dr_smith): GRANTED (1-year expiration)");
+            log.info("  - pat-002 (Jane Roe): NO active consent (demonstrates access denial)");
+            log.info("==================================================================");
+        }
     }
 }

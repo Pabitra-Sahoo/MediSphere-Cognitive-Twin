@@ -29,6 +29,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Spring AOP (Aspect-Oriented Programming for declarative auditing) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Validation (Jakarta Bean Validation) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

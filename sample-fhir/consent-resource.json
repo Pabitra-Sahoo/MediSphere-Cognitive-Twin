@@ -37,6 +37,23 @@
     "period": {
       "start": "2026-09-01T00:00:00Z",
       "end": "2027-09-01T00:00:00Z"
-    }
+    },
+    "actor": [
+      {
+        "role": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+              "code": "PROV",
+              "display": "Healthcare Provider"
+            }
+          ]
+        },
+        "reference": {
+          "reference": "Practitioner/prov-001",
+          "display": "Dr. Smith"
+        }
+      }
+    ]
   }
 }

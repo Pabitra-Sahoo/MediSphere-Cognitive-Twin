@@ -1,5 +1,7 @@
 package com.medisphere.vitals.controller;
 
+import com.medisphere.audit.annotation.Audited;
+import com.medisphere.audit.model.AuditAction;
 import com.medisphere.vitals.dto.VitalsDTO;
 import com.medisphere.vitals.dto.VitalsEventDTO;
 import com.medisphere.vitals.dto.VitalsSimulateRequest;
@@ -48,10 +50,11 @@ public class VitalsController {
 
     /**
      * Retrieves historical vital signs measurements for a patient with pagination and date range filters.
-     * Enforces fine-grained patient access control (ADMIN, assigned PROVIDER, or self PATIENT).
+     * Enforces fine-grained patient access control (ADMIN, assigned PROVIDER with consent, or self PATIENT).
      */
     @GetMapping("/patients/{patientId}/vitals")
-    @PreAuthorize("hasRole('ADMIN') or @sec.canAccessPatient(#patientId)")
+    @PreAuthorize("hasRole('ADMIN') or @sec.canAccessPatientWithConsent(#patientId)")
+    @Audited(action = AuditAction.VIEW_VITALS, resourceType = "VITALS")
     public ResponseEntity<Page<VitalsDTO>> getVitalsHistory(
             @PathVariable String patientId,
             @RequestParam(defaultValue = "0") int page,
@@ -66,10 +69,11 @@ public class VitalsController {
 
     /**
      * Retrieves the latest vital signs reading for a patient.
-     * Enforces fine-grained patient access control (ADMIN, assigned PROVIDER, or self PATIENT).
+     * Enforces fine-grained patient access control (ADMIN, assigned PROVIDER with consent, or self PATIENT).
      */
     @GetMapping("/patients/{patientId}/vitals/latest")
-    @PreAuthorize("hasRole('ADMIN') or @sec.canAccessPatient(#patientId)")
+    @PreAuthorize("hasRole('ADMIN') or @sec.canAccessPatientWithConsent(#patientId)")
+    @Audited(action = AuditAction.VIEW_VITALS, resourceType = "VITALS")
     public ResponseEntity<VitalsDTO> getLatestVitals(@PathVariable String patientId) {
         VitalsDTO dto = vitalsService.getLatestVitals(patientId);
         return ResponseEntity.ok(dto);

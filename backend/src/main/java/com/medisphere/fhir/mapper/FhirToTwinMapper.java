@@ -408,4 +408,92 @@ public class FhirToTwinMapper {
         }
         return false;
     }
+
+    /**
+     * Maps a FHIR R4 Consent resource into a domain Consent entity.
+     * Returns Optional.empty() if the provision.actor provider cannot be resolved or is missing,
+     * ensuring no domain records with null or unknown grantedTo are ever created.
+     */
+    public Optional<com.medisphere.consent.model.Consent> mapConsent(Consent fhirConsent, String patientId) {
+        if (fhirConsent == null || !StringUtils.hasText(patientId)) {
+            return Optional.empty();
+        }
+
+        // 1. Extract provider actor from provision
+        String grantedTo = null;
+        if (fhirConsent.hasProvision() && fhirConsent.getProvision().hasActor()) {
+            for (var actor : fhirConsent.getProvision().getActor()) {
+                if (actor.hasReference() && actor.getReference().hasReference()) {
+                    String ref = actor.getReference().getReference();
+                    if (ref.startsWith("Practitioner/")) {
+                        grantedTo = ref.substring("Practitioner/".length()).trim();
+                        break;
+                    } else if (ref.startsWith("User/")) {
+                        grantedTo = ref.substring("User/".length()).trim();
+                        break;
+                    } else if (StringUtils.hasText(ref)) {
+                        grantedTo = ref.trim();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!StringUtils.hasText(grantedTo)) {
+            return Optional.empty();
+        }
+
+        // 2. Map status
+        com.medisphere.consent.model.ConsentStatus domainStatus = com.medisphere.consent.model.ConsentStatus.GRANTED;
+        if (fhirConsent.hasStatus()) {
+            Consent.ConsentState state = fhirConsent.getStatus();
+            if (state == Consent.ConsentState.ACTIVE) {
+                domainStatus = com.medisphere.consent.model.ConsentStatus.GRANTED;
+            } else if (state == Consent.ConsentState.INACTIVE
+                    || state == Consent.ConsentState.REJECTED
+                    || state == Consent.ConsentState.ENTEREDINERROR) {
+                domainStatus = com.medisphere.consent.model.ConsentStatus.REVOKED;
+            } else {
+                domainStatus = com.medisphere.consent.model.ConsentStatus.PENDING;
+            }
+        }
+
+        // 3. Map scope
+        String scope = "treatment";
+        if (fhirConsent.hasScope() && fhirConsent.getScope().hasCoding()
+                && fhirConsent.getScope().getCodingFirstRep().hasCode()) {
+            scope = fhirConsent.getScope().getCodingFirstRep().getCode();
+        }
+
+        // 4. Map dates
+        Instant grantedAt = Instant.now();
+        Instant expiresAt = null;
+        if (fhirConsent.hasProvision() && fhirConsent.getProvision().hasPeriod()) {
+            org.hl7.fhir.r4.model.Period period = fhirConsent.getProvision().getPeriod();
+            if (period.hasStart()) {
+                grantedAt = period.getStart().toInstant();
+            }
+            if (period.hasEnd()) {
+                expiresAt = period.getEnd().toInstant();
+            }
+        } else if (fhirConsent.hasDateTime()) {
+            grantedAt = fhirConsent.getDateTime().toInstant();
+        }
+
+        // 5. Map reason/policy
+        String reason = null;
+        if (fhirConsent.hasPolicy() && !fhirConsent.getPolicy().isEmpty()
+                && fhirConsent.getPolicyFirstRep().hasUri()) {
+            reason = fhirConsent.getPolicyFirstRep().getUri();
+        }
+
+        com.medisphere.consent.model.Consent domainConsent = new com.medisphere.consent.model.Consent(
+                patientId, grantedTo, scope, domainStatus, grantedAt, expiresAt, reason
+        );
+        if (domainStatus == com.medisphere.consent.model.ConsentStatus.REVOKED) {
+            domainConsent.setRevokedAt(Instant.now());
+        }
+
+        return Optional.of(domainConsent);
+    }
 }

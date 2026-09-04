@@ -1,8 +1,12 @@
 package com.medisphere.auth.security;
 
+import com.medisphere.audit.model.AuditAction;
+import com.medisphere.audit.model.AuditOutcome;
+import com.medisphere.audit.service.AuditService;
 import com.medisphere.auth.model.Role;
 import com.medisphere.auth.model.User;
 import com.medisphere.auth.repository.UserRepository;
+import com.medisphere.consent.service.ConsentService;
 import com.medisphere.patient.model.Patient;
 import com.medisphere.patient.repository.PatientRepository;
 import org.slf4j.Logger;
@@ -18,7 +22,7 @@ import org.springframework.util.StringUtils;
  * <p>Enforces:
  * <ul>
  *   <li>{@code ADMIN}: Unrestricted access to all patients and twins.</li>
- *   <li>{@code PROVIDER}: Access restricted strictly to assigned patients (via {@code assignedProviderIds}).</li>
+ *   <li>{@code PROVIDER}: Access restricted strictly to assigned patients and active consent grants.</li>
  *   <li>{@code PATIENT}: Access restricted strictly to their own patient ID (via {@code linkedPatientId}).</li>
  * </ul>
  * </p>
@@ -30,15 +34,22 @@ public class SecurityEvaluationService {
 
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
+    private final ConsentService consentService;
+    private final AuditService auditService;
 
-    public SecurityEvaluationService(UserRepository userRepository, PatientRepository patientRepository) {
+    public SecurityEvaluationService(UserRepository userRepository,
+                                   PatientRepository patientRepository,
+                                   ConsentService consentService,
+                                   AuditService auditService) {
         this.userRepository = userRepository;
         this.patientRepository = patientRepository;
+        this.consentService = consentService;
+        this.auditService = auditService;
     }
 
     /**
      * Determines whether the currently authenticated principal is authorized to access
-     * the specified patient's record or digital twin.
+     * the specified patient's record or digital twin based on role and assignment (without requiring consent).
      */
     public boolean canAccessPatient(String patientId) {
         if (!StringUtils.hasText(patientId)) {
@@ -66,6 +77,12 @@ public class SecurityEvaluationService {
             if (!isOwnRecord) {
                 log.warn("Access denied: Patient '{}' attempted to access unauthorized patient '{}'",
                         user.getUsername(), patientId);
+                auditService.log(
+                        user.getId(), user.getUsername(), user.getRole().name(),
+                        AuditAction.ACCESS_DENIED, "PATIENT", patientId, patientId,
+                        "Access denied: patient attempted to access unauthorized patient record",
+                        AuditOutcome.DENIED, null
+                );
             }
             return isOwnRecord;
         }
@@ -75,6 +92,12 @@ public class SecurityEvaluationService {
             String providerId = user.getLinkedProviderId();
             if (!StringUtils.hasText(providerId)) {
                 log.warn("Access denied: Provider '{}' has no linkedProviderId configured", user.getUsername());
+                auditService.log(
+                        user.getId(), user.getUsername(), user.getRole().name(),
+                        AuditAction.ACCESS_DENIED, "PATIENT", patientId, patientId,
+                        "Access denied: provider has no linkedProviderId configured",
+                        AuditOutcome.DENIED, null
+                );
                 return false;
             }
 
@@ -89,8 +112,60 @@ public class SecurityEvaluationService {
             if (!isAssigned) {
                 log.warn("Access denied: Provider '{}' (ID: {}) is not assigned to patient '{}'",
                         user.getUsername(), providerId, patientId);
+                auditService.log(
+                        user.getId(), user.getUsername(), user.getRole().name(),
+                        AuditAction.ACCESS_DENIED, "PATIENT", patientId, patientId,
+                        "Access denied: provider " + providerId + " is not assigned to patient",
+                        AuditOutcome.DENIED, null
+                );
             }
             return isAssigned;
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines whether the currently authenticated principal is authorized to access
+     * the specified patient's protected clinical record (twin, vitals, labs), which additionally
+     * requires an active consent grant for healthcare providers.
+     */
+    public boolean canAccessPatientWithConsent(String patientId) {
+        if (!canAccessPatient(patientId)) {
+            return false;
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+
+        User user = userRepository.findByUsername(auth.getName()).orElse(null);
+        if (user == null || !user.isActive()) {
+            return false;
+        }
+
+        // ADMIN and PATIENT (own record) do not require third-party consent
+        if (user.getRole() == Role.ADMIN || user.getRole() == Role.PATIENT) {
+            return true;
+        }
+
+        // PROVIDER requires active, non-expired consent
+        if (user.getRole() == Role.PROVIDER) {
+            String providerId = user.getLinkedProviderId();
+            boolean hasActiveConsent = consentService.hasActiveConsent(patientId, providerId);
+            if (!hasActiveConsent) {
+                log.warn("Access denied: Provider '{}' (ID: {}) lacks active consent for patient '{}'",
+                        user.getUsername(), providerId, patientId);
+                auditService.log(
+                        user.getId(), user.getUsername(), user.getRole().name(),
+                        AuditAction.ACCESS_DENIED, "PATIENT", patientId, patientId,
+                        "Access denied: no active consent found for provider " + providerId,
+                        AuditOutcome.DENIED, null
+                );
+                return false;
+            }
+            return true;
         }
 
         return false;
@@ -109,6 +184,7 @@ public class SecurityEvaluationService {
             return auth != null && auth.getAuthorities().stream().anyMatch(a ->
                     "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_PROVIDER".equals(a.getAuthority()));
         }
-        return canAccessPatient(resource.getPatientId());
+        return canAccessPatientWithConsent(resource.getPatientId());
     }
 }
+

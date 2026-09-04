@@ -124,6 +124,54 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles patient consent authorization failures → 403 Forbidden.
+     */
+    @ExceptionHandler(ConsentDeniedException.class)
+    public ResponseEntity<ApiError> handleConsentDenied(ConsentDeniedException ex,
+                                                         HttpServletRequest request) {
+        log.warn("Consent denied at {}: {}", request.getRequestURI(), ex.getMessage());
+        ApiError error = new ApiError(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                ex.getMessage() != null ? ex.getMessage() : "Access denied: active patient consent required",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    /**
+     * Handles unsupported HTTP methods → 405 Method Not Allowed.
+     */
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> handleMethodNotSupported(org.springframework.web.HttpRequestMethodNotSupportedException ex,
+                                                             HttpServletRequest request) {
+        log.warn("Method not allowed at {}: {}", request.getRequestURI(), ex.getMessage());
+        ApiError error = new ApiError(
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "Method Not Allowed",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    }
+
+    /**
+     * Handles unmapped endpoints / static resources → 404 Not Found.
+     */
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex,
+                                                          HttpServletRequest request) {
+        log.warn("Resource not found at {}: {}", request.getRequestURI(), ex.getMessage());
+        ApiError error = new ApiError(
+                HttpStatus.NOT_FOUND.value(),
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
      * Catch-all for unhandled exceptions → 500.
      */
     @ExceptionHandler(Exception.class)

@@ -19,6 +19,8 @@ import com.medisphere.twin.controller.HealthTwinController;
 import com.medisphere.twin.dto.HealthTwinDTO;
 import com.medisphere.twin.dto.TwinCompletenessDTO;
 import com.medisphere.twin.service.HealthTwinService;
+import com.medisphere.audit.service.AuditService;
+import com.medisphere.consent.service.ConsentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +67,12 @@ class PatientControllerSecurityTest {
     @MockitoBean
     private PatientRepository patientRepository;
 
+    @MockitoBean
+    private ConsentService consentService;
+
+    @MockitoBean
+    private AuditService auditService;
+
     @Test
     @DisplayName("GET /api/patients without authentication returns 401 Unauthorized")
     void testGetPatientsUnauthenticated() throws Exception {
@@ -107,6 +115,7 @@ class PatientControllerSecurityTest {
         patient.setId("pat-001");
         patient.setAssignedProviderIds(List.of("prov-001"));
         when(patientRepository.findById("pat-001")).thenReturn(Optional.of(patient));
+        when(consentService.hasActiveConsent("pat-001", "prov-001")).thenReturn(true);
 
         PatientDTO dto = new PatientDTO();
         dto.setId("pat-001");
@@ -176,6 +185,7 @@ class PatientControllerSecurityTest {
         patient.setId("pat-001");
         patient.setAssignedProviderIds(List.of("prov-001"));
         when(patientRepository.findById("pat-001")).thenReturn(Optional.of(patient));
+        when(consentService.hasActiveConsent("pat-001", "prov-001")).thenReturn(true);
 
         HealthTwinDTO twinDTO = new HealthTwinDTO();
         twinDTO.setId("twin-001");

@@ -2,6 +2,11 @@ package com.medisphere.fhir.service;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
+import com.medisphere.audit.model.AuditAction;
+import com.medisphere.audit.model.AuditOutcome;
+import com.medisphere.audit.service.AuditService;
+import com.medisphere.consent.model.ConsentStatus;
+import com.medisphere.consent.repository.ConsentRepository;
 import com.medisphere.fhir.dto.FhirIngestionResult;
 import com.medisphere.fhir.dto.ResourceResult;
 import com.medisphere.fhir.mapper.FhirToTwinMapper;
@@ -50,6 +55,8 @@ public class FhirIngestionService {
     private final HealthTwinRepository twinRepository;
     private final HealthTwinService healthTwinService;
     private final LabResultRepository labResultRepository;
+    private final ConsentRepository consentRepository;
+    private final AuditService auditService;
 
     public FhirIngestionService(FhirContext fhirContext,
                                 FhirValidationService validationService,
@@ -59,7 +66,9 @@ public class FhirIngestionService {
                                 PatientService patientService,
                                 HealthTwinRepository twinRepository,
                                 HealthTwinService healthTwinService,
-                                LabResultRepository labResultRepository) {
+                                LabResultRepository labResultRepository,
+                                ConsentRepository consentRepository,
+                                AuditService auditService) {
         this.fhirContext = fhirContext;
         this.validationService = validationService;
         this.mapper = mapper;
@@ -69,6 +78,8 @@ public class FhirIngestionService {
         this.twinRepository = twinRepository;
         this.healthTwinService = healthTwinService;
         this.labResultRepository = labResultRepository;
+        this.consentRepository = consentRepository;
+        this.auditService = auditService;
     }
 
     /**
@@ -142,6 +153,15 @@ public class FhirIngestionService {
             FhirResource fhirResource = new FhirResource(
                     null, resourceType, resourceId, encodedJson, "INVALID", outcome.getErrors());
             fhirResourceRepository.save(fhirResource);
+
+            auditService.log(
+                    AuditAction.FHIR_VALIDATION_FAIL,
+                    "FHIR",
+                    resourceId,
+                    null,
+                    "FHIR validation failed: " + outcome.getErrors(),
+                    AuditOutcome.FAILURE
+            );
 
             return new ResourceResult(resourceType, resourceId, "INVALID", "REJECTED", outcome.getErrors());
         }
@@ -313,10 +333,65 @@ public class FhirIngestionService {
                     .orElseGet(() -> new HealthTwin(patient.getId()));
             updateFhirSyncMetadata(twin);
             healthTwinService.recalculateAndSave(twin, patient);
-            return new ResourceResult("Consent", resourceId, "VALID", "PERSISTED", patientId, List.of());
+
+            Optional<com.medisphere.consent.model.Consent> domainConsentOpt = mapper.mapConsent(consent, patient.getId());
+            if (domainConsentOpt.isPresent()) {
+                com.medisphere.consent.model.Consent domainConsent = domainConsentOpt.get();
+
+                // Supersede existing active consents for (patientId, grantedTo)
+                List<com.medisphere.consent.model.Consent> existingActive = consentRepository
+                        .findByPatientIdAndGrantedToAndStatus(patient.getId(), domainConsent.getGrantedTo(), ConsentStatus.GRANTED);
+                for (com.medisphere.consent.model.Consent prior : existingActive) {
+                    prior.setStatus(ConsentStatus.REVOKED);
+                    prior.setRevokedAt(Instant.now());
+                    prior.setReason("Superseded by new FHIR consent");
+                    prior.setUpdatedAt(Instant.now());
+                    consentRepository.save(prior);
+                }
+
+                com.medisphere.consent.model.Consent savedConsent = consentRepository.save(domainConsent);
+
+                auditService.log(
+                        AuditAction.FHIR_SYNC,
+                        "FHIR",
+                        resourceId,
+                        patient.getId(),
+                        "Ingested and mapped FHIR Consent for provider " + domainConsent.getGrantedTo(),
+                        AuditOutcome.SUCCESS
+                );
+                auditService.log(
+                        AuditAction.CONSENT_GRANTED,
+                        "CONSENT",
+                        savedConsent.getId(),
+                        patient.getId(),
+                        "Consent mapped from FHIR for provider " + domainConsent.getGrantedTo(),
+                        AuditOutcome.SUCCESS
+                );
+
+                return new ResourceResult("Consent", resourceId, "VALID", "MAPPED", patientId, List.of());
+            } else {
+                auditService.log(
+                        AuditAction.FHIR_SYNC,
+                        "FHIR",
+                        resourceId,
+                        patient.getId(),
+                        "Persisted FHIR Consent (domain consent mapping skipped: missing or unresolvable actor)",
+                        AuditOutcome.SUCCESS
+                );
+                return new ResourceResult("Consent", resourceId, "VALID", "PERSISTED", patientId,
+                        List.of("FHIR Consent persisted; domain consent mapping skipped due to missing or unresolvable provision.actor"));
+            }
         }
 
-        return new ResourceResult("Consent", resourceId, "VALID", "PERSISTED", List.of());
+        auditService.log(
+                AuditAction.FHIR_SYNC,
+                "FHIR",
+                resourceId,
+                null,
+                "Persisted FHIR Consent (unmatched patient)",
+                AuditOutcome.SUCCESS
+        );
+        return new ResourceResult("Consent", resourceId, "VALID", "PERSISTED", List.of("Unresolved patient reference"));
     }
 
     private Patient resolvePatient(String ref) {

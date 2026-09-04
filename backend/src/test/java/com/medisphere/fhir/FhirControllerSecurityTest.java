@@ -15,6 +15,8 @@ import com.medisphere.fhir.repository.FhirResourceRepository;
 import com.medisphere.fhir.service.FhirIngestionService;
 import com.medisphere.patient.model.Patient;
 import com.medisphere.patient.repository.PatientRepository;
+import com.medisphere.audit.service.AuditService;
+import com.medisphere.consent.service.ConsentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +62,12 @@ class FhirControllerSecurityTest {
 
     @MockitoBean
     private PatientRepository patientRepository;
+
+    @MockitoBean
+    private ConsentService consentService;
+
+    @MockitoBean
+    private AuditService auditService;
 
     @Test
     @DisplayName("POST /api/fhir/ingest without authentication returns 401 Unauthorized")
@@ -121,6 +129,7 @@ class FhirControllerSecurityTest {
         patient.setId("pat-001");
         patient.setAssignedProviderIds(List.of("prov-001"));
         when(patientRepository.findById("pat-001")).thenReturn(Optional.of(patient));
+        when(consentService.hasActiveConsent("pat-001", "prov-001")).thenReturn(true);
         when(fhirResourceRepository.findByPatientId(eq("pat-001"), any(Sort.class))).thenReturn(List.of());
 
         mockMvc.perform(get("/api/patients/pat-001/fhir-resources"))
