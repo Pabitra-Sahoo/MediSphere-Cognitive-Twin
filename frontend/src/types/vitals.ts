@@ -2,6 +2,8 @@
  * Vital signs measurement DTO matching backend VitalsDTO.
  */
 
+export type VitalsSource = 'WEARABLE' | 'MANUAL' | 'FHIR' | 'SIMULATED' | string;
+
 export interface VitalsRecord {
   id: string;
   patientId: string;
@@ -13,7 +15,7 @@ export interface VitalsRecord {
   oxygenSaturation?: number;
   temperature?: number;
   respiratoryRate?: number;
-  source: 'WEARABLE' | 'MANUAL' | 'FHIR_SIMULATION';
+  source?: VitalsSource;
   valid: boolean;
   validationErrors?: string[];
   validationWarnings?: string[];

@@ -132,8 +132,21 @@ const MainShell: React.FC = () => {
 
   // Load details whenever selected patient ID changes
   useEffect(() => {
-    if (!selectedPatientId) return;
+    if (!selectedPatientId) {
+      queueMicrotask(() => {
+        setSelectedPatient(null);
+        setSelectedTwin(null);
+      });
+      return;
+    }
     let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) {
+        setRecordLoading(true);
+        setRecordError(null);
+      }
+    });
+
     Promise.all([
       patientApi.getPatient(selectedPatientId),
       patientApi.getTwin(selectedPatientId),
@@ -142,7 +155,6 @@ const MainShell: React.FC = () => {
         if (!ignore) {
           setSelectedPatient(patientData);
           setSelectedTwin(twinData);
-          setRecordError(null);
         }
       })
       .catch((err) => {
@@ -151,7 +163,13 @@ const MainShell: React.FC = () => {
           setSelectedTwin(null);
           setRecordError(err);
         }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setRecordLoading(false);
+        }
       });
+
     return () => {
       ignore = true;
     };
@@ -240,11 +258,13 @@ const MainShell: React.FC = () => {
                   {/* Right Column: Latest Vitals & Latest Labs Panels */}
                   <div className="overview-right-col">
                     <VitalsPanel
+                      key={`vitals-ov-${selectedPatient.id}`}
                       patientId={selectedPatient.id}
                       twinVitals={selectedTwin?.latestVitals}
                       showHistory={false}
                     />
                     <LabsPanel
+                      key={`labs-ov-${selectedPatient.id}`}
                       patientId={selectedPatient.id}
                       twinLabs={selectedTwin?.latestLabs}
                       showHistory={false}
@@ -291,11 +311,13 @@ const MainShell: React.FC = () => {
 
                   <div className="overview-two-col-grid">
                     <VitalsPanel
+                      key={`vitals-p360-${selectedPatient.id}`}
                       patientId={selectedPatient.id}
                       twinVitals={selectedTwin?.latestVitals}
                       showHistory={false}
                     />
                     <LabsPanel
+                      key={`labs-p360-${selectedPatient.id}`}
                       patientId={selectedPatient.id}
                       twinLabs={selectedTwin?.latestLabs}
                       showHistory={false}
@@ -306,6 +328,7 @@ const MainShell: React.FC = () => {
 
               {activeTab === 'vitals' && (
                 <VitalsPanel
+                  key={`vitals-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   twinVitals={selectedTwin?.latestVitals}
                   showHistory={true}
@@ -314,6 +337,7 @@ const MainShell: React.FC = () => {
 
               {activeTab === 'labs' && (
                 <LabsPanel
+                  key={`labs-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   twinLabs={selectedTwin?.latestLabs}
                   showHistory={true}
@@ -322,6 +346,7 @@ const MainShell: React.FC = () => {
 
               {activeTab === 'fhir' && (
                 <FhirPanel
+                  key={`fhir-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   syncStatus={selectedTwin?.fhirSyncStatus}
                   onIngestionSuccess={() => {
@@ -333,13 +358,17 @@ const MainShell: React.FC = () => {
 
               {activeTab === 'consent' && (
                 <ConsentPanel
+                  key={`consent-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   patientName={patientFullName}
                 />
               )}
 
               {activeTab === 'audit' && (
-                <AuditActivityPanel patientId={selectedPatient.id} />
+                <AuditActivityPanel
+                  key={`audit-tab-${selectedPatient.id}`}
+                  patientId={selectedPatient.id}
+                />
               )}
             </>
           )}

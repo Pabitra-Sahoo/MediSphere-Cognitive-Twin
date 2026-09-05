@@ -159,6 +159,18 @@ body {
   color: #fca5a5;
 }
 
+.alert-success {
+  background-color: rgba(52, 211, 153, 0.15);
+  border: 1px solid var(--color-accent-success);
+  color: #6ee7b7;
+}
+
+.alert-danger {
+  background-color: rgba(248, 113, 113, 0.15);
+  border: 1px solid var(--color-accent-danger);
+  color: #fca5a5;
+}
+
 /* ---- Form ---- */
 .login-form {
   display: flex;
@@ -285,6 +297,11 @@ body {
 .btn-sm {
   padding: 0.4rem 0.8rem;
   font-size: var(--font-size-xs);
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
 }
 
 /* ---- Demo Credentials Section ---- */
@@ -2229,3 +2246,135 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   Phase 7B: Functional Data Panel Enhancements
+   ============================================================ */
+
+.vitals-header-badges {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.vitals-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-sm);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-xs);
+}
+
+.vitals-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.meta-label {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.meta-value {
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.vitals-quality-notice {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-xs);
+  color: #fca5a5;
+}
+
+.vitals-warning-notice {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  background-color: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: var(--font-size-xs);
+  color: var(--color-accent-warning);
+}
+
+.notice-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.notice-content ul {
+  margin-top: 0.25rem;
+  padding-left: 1.25rem;
+}
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.fhir-detail-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fhir-detail-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-xs);
+}
+
+.fhir-validation-errors-box {
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-size-xs);
+}
+
+.fhir-validation-errors-box ul {
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+}
+
+.audit-row-denied {
+  background-color: rgba(248, 113, 113, 0.08) !important;
+}
+
+.audit-row-denied td {
+  border-bottom-color: rgba(248, 113, 113, 0.2) !important;
+}
+
+.text-pass {
+  color: var(--color-accent-success);
+  font-weight: 600;
+}
+
+.text-warn {
+  color: var(--color-accent-warning);
+  font-weight: 600;
+}
+

@@ -24,51 +24,85 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
   const [error, setError] = useState<unknown>(null);
 
   const fetchLabs = useCallback(async () => {
-    if (!patientId || !showHistory) return;
+    if (!patientId) return;
     setIsLoading(true);
     setError(null);
     try {
-      const pageRes = await labApi.getLabs(patientId, 0, 10);
+      const pageRes = await labApi.getLabs(patientId, 0, 20);
       setLabs(pageRes.content);
     } catch (err) {
       setError(err);
     } finally {
       setIsLoading(false);
     }
-  }, [patientId, showHistory]);
+  }, [patientId]);
 
   useEffect(() => {
-    if (!patientId || !showHistory) return;
     let ignore = false;
-    labApi.getLabs(patientId, 0, 10)
+    queueMicrotask(() => {
+      if (!ignore) {
+        setIsLoading(true);
+        setError(null);
+      }
+    });
+
+    labApi.getLabs(patientId, 0, 20)
       .then((pageRes) => {
         if (!ignore) {
           setLabs(pageRes.content);
-          setError(null);
         }
       })
       .catch((err) => {
         if (!ignore) {
           setError(err);
         }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoading(false);
+        }
       });
+
     return () => {
       ignore = true;
     };
-  }, [patientId, showHistory]);
+  }, [patientId]);
 
   if (error) {
     return (
-      <Card title="Laboratory Results">
-        <ErrorState error={error} onRetry={fetchLabs} />
+      <Card title="Laboratory Test Results">
+        <ErrorState
+          error={error}
+          title="Laboratory Results Access Denied"
+          message="Unable to access patient laboratory records. Access requires patient ownership, provider assignment with active consent, or administrator privileges."
+          onRetry={fetchLabs}
+        />
       </Card>
     );
   }
+
+  // Find any actual reference range from the discrete lab records if available
+  const findLabRefRange = (testCodeQuery: string): string => {
+    const matched = labs.find(
+      (l) => l.testCode?.toLowerCase() === testCodeQuery.toLowerCase() ||
+             l.testName?.toLowerCase().includes(testCodeQuery.toLowerCase())
+    );
+    if (matched?.referenceRange && (matched.referenceRange.low !== undefined || matched.referenceRange.high !== undefined)) {
+      return `${matched.referenceRange.low ?? '—'} - ${matched.referenceRange.high ?? '—'} ${matched.unit}`;
+    }
+    return 'Not provided by laboratory';
+  };
 
   const glucose = twinLabs?.glucose;
   const cholesterol = twinLabs?.cholesterol;
   const hemoglobin = twinLabs?.hemoglobin;
   const creatinine = twinLabs?.creatinine;
+
+  const hasAnyLatestLab =
+    glucose !== undefined ||
+    cholesterol !== undefined ||
+    hemoglobin !== undefined ||
+    creatinine !== undefined;
 
   return (
     <Card
@@ -76,82 +110,108 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
       subtitle={
         twinLabs?.timestamp
           ? `Last updated: ${new Date(twinLabs.timestamp).toLocaleString()}`
-          : 'Latest diagnostic biochemistry values'
+          : 'Diagnostic biochemistry panels and historical lab orders'
       }
       action={
         <Badge variant="info" size="sm">
-          Diagnostic Lab
+          Clinical Lab Stream
         </Badge>
       }
     >
+      {/* Latest Diagnostic Summary Cards */}
       <div className="labs-metrics-grid">
+        {/* Glucose */}
         <div className="lab-metric-card">
           <div className="lab-card-header">
             <span className="lab-name">Fasting Glucose</span>
             <span className="lab-icon">🍬</span>
           </div>
           <div className="lab-value-row">
-            <span className="lab-value">{glucose !== undefined ? glucose : '—'}</span>
-            <span className="lab-unit">mg/dL</span>
+            <span className="lab-value">{glucose !== undefined ? glucose : 'Not available'}</span>
+            {glucose !== undefined && <span className="lab-unit">mg/dL</span>}
           </div>
-          <div className="lab-ref-range">Reference: 70 - 99 mg/dL</div>
+          <div className="lab-ref-range">Reference: {findLabRefRange('glucose')}</div>
         </div>
 
+        {/* Total Cholesterol */}
         <div className="lab-metric-card">
           <div className="lab-card-header">
             <span className="lab-name">Total Cholesterol</span>
             <span className="lab-icon">🧪</span>
           </div>
           <div className="lab-value-row">
-            <span className="lab-value">{cholesterol !== undefined ? cholesterol : '—'}</span>
-            <span className="lab-unit">mg/dL</span>
+            <span className="lab-value">{cholesterol !== undefined ? cholesterol : 'Not available'}</span>
+            {cholesterol !== undefined && <span className="lab-unit">mg/dL</span>}
           </div>
-          <div className="lab-ref-range">Reference: &lt; 200 mg/dL</div>
+          <div className="lab-ref-range">Reference: {findLabRefRange('cholesterol')}</div>
         </div>
 
+        {/* Hemoglobin */}
         <div className="lab-metric-card">
           <div className="lab-card-header">
             <span className="lab-name">Hemoglobin</span>
             <span className="lab-icon">🩸</span>
           </div>
           <div className="lab-value-row">
-            <span className="lab-value">{hemoglobin !== undefined ? hemoglobin : '—'}</span>
-            <span className="lab-unit">g/dL</span>
+            <span className="lab-value">{hemoglobin !== undefined ? hemoglobin : 'Not available'}</span>
+            {hemoglobin !== undefined && <span className="lab-unit">g/dL</span>}
           </div>
-          <div className="lab-ref-range">Reference: 13.8 - 17.2 g/dL</div>
+          <div className="lab-ref-range">Reference: {findLabRefRange('hemoglobin')}</div>
         </div>
 
+        {/* Serum Creatinine */}
         <div className="lab-metric-card">
           <div className="lab-card-header">
             <span className="lab-name">Serum Creatinine</span>
             <span className="lab-icon">💧</span>
           </div>
           <div className="lab-value-row">
-            <span className="lab-value">{creatinine !== undefined ? creatinine : '—'}</span>
-            <span className="lab-unit">mg/dL</span>
+            <span className="lab-value">{creatinine !== undefined ? creatinine : 'Not available'}</span>
+            {creatinine !== undefined && <span className="lab-unit">mg/dL</span>}
           </div>
-          <div className="lab-ref-range">Reference: 0.7 - 1.3 mg/dL</div>
+          <div className="lab-ref-range">Reference: {findLabRefRange('creatinine')}</div>
         </div>
       </div>
 
+      {!hasAnyLatestLab && labs.length === 0 && !isLoading && (
+        <EmptyState
+          icon="🧪"
+          title="No Laboratory Results Found"
+          description="No diagnostic laboratory tests or biochemical observations have been reported for this patient."
+        />
+      )}
+
+      {/* Historical Laboratory Tests Table */}
       {showHistory && (
         <div className="labs-history-table-container">
-          <h4 className="section-subheading">Historical Laboratory Tests</h4>
+          <div className="table-header-row">
+            <h4 className="section-subheading">Discrete Laboratory Test Records ({labs.length})</h4>
+            <button
+              type="button"
+              onClick={fetchLabs}
+              className="btn btn-secondary btn-xs"
+              disabled={isLoading}
+            >
+              Refresh Labs
+            </button>
+          </div>
+
           {isLoading ? (
             <LoadingState message="Loading laboratory reports..." compact />
           ) : labs.length === 0 ? (
             <EmptyState
               icon="🧪"
-              title="No Historical Lab Reports"
-              description="No discrete laboratory records stored for this patient."
+              title="No Discrete Lab Test Records"
+              description="No historical laboratory orders or test records exist in the laboratory store for this patient."
             />
           ) : (
             <div className="clinical-table-wrapper">
               <table className="clinical-table">
                 <thead>
                   <tr>
-                    <th>Performed At</th>
+                    <th>Observation Date</th>
                     <th>Test Name</th>
+                    <th>LOINC / Code</th>
                     <th>Result Value</th>
                     <th>Reference Range</th>
                     <th>Status</th>
@@ -159,29 +219,42 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {labs.map((lab) => (
-                    <tr key={lab.id}>
-                      <td>{new Date(lab.performedAt).toLocaleDateString()}</td>
-                      <td>
-                        <strong>{lab.testName}</strong>{' '}
-                        <code className="code-subtle">{lab.testCode}</code>
-                      </td>
-                      <td>
-                        <strong>{lab.value}</strong> {lab.unit}
-                      </td>
-                      <td>
-                        {lab.referenceRange
-                          ? `${lab.referenceRange.low ?? '—'} - ${lab.referenceRange.high ?? '—'} ${lab.unit}`
-                          : '—'}
-                      </td>
-                      <td>
-                        <Badge variant="neutral" size="sm">
-                          {lab.status}
-                        </Badge>
-                      </td>
-                      <td>{lab.source || 'FHIR'}</td>
-                    </tr>
-                  ))}
+                  {labs.map((lab) => {
+                    const hasRange =
+                      lab.referenceRange &&
+                      (lab.referenceRange.low !== undefined || lab.referenceRange.high !== undefined);
+                    const rangeDisplay = hasRange
+                      ? `${lab.referenceRange?.low ?? '—'} - ${lab.referenceRange?.high ?? '—'} ${lab.unit}`
+                      : 'Not available';
+
+                    return (
+                      <tr key={lab.id}>
+                        <td>{lab.performedAt ? new Date(lab.performedAt).toLocaleString() : 'Not available'}</td>
+                        <td>
+                          <strong>{lab.testName || 'Not available'}</strong>
+                        </td>
+                        <td>
+                          {lab.testCode ? <code>{lab.testCode}</code> : 'Not available'}
+                        </td>
+                        <td>
+                          {lab.value !== undefined ? (
+                            <span>
+                              <strong>{lab.value}</strong> {lab.unit || ''}
+                            </span>
+                          ) : (
+                            'Not available'
+                          )}
+                        </td>
+                        <td>{rangeDisplay}</td>
+                        <td>
+                          <Badge variant="neutral" size="sm">
+                            {lab.status || 'FINAL'}
+                          </Badge>
+                        </td>
+                        <td>{lab.source || 'FHIR'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

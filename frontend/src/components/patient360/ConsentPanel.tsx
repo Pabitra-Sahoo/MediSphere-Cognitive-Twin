@@ -20,10 +20,11 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
   const { user } = useAuth();
   const [consents, setConsents] = useState<ConsentDTO[]>([]);
   const [verifyStatus, setVerifyStatus] = useState<ConsentVerifyResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Grant form state
   const [showGrantForm, setShowGrantForm] = useState(false);
@@ -52,28 +53,36 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
 
   useEffect(() => {
     let ignore = false;
-    consentApi.getConsents(patientId)
-      .then((data) => {
-        if (!ignore) {
-          setConsents(data);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (!ignore) {
-          setError(err);
-        }
-      });
+    queueMicrotask(() => {
+      if (!ignore) {
+        setIsLoading(true);
+        setError(null);
+        setActionMessage(null);
+        setActionError(null);
+      }
+    });
+
+    const promises: Promise<unknown>[] = [
+      consentApi.getConsents(patientId).then((data) => {
+        if (!ignore) setConsents(data);
+      }),
+    ];
 
     if (user?.role === 'PROVIDER' || user?.role === 'ADMIN') {
-      consentApi.verifyConsent(patientId)
-        .then((verifyRes) => {
-          if (!ignore) {
-            setVerifyStatus(verifyRes);
-          }
+      promises.push(
+        consentApi.verifyConsent(patientId).then((verifyRes) => {
+          if (!ignore) setVerifyStatus(verifyRes);
         })
-        .catch(() => {});
+      );
     }
+
+    Promise.all(promises)
+      .catch((err) => {
+        if (!ignore) setError(err);
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
 
     return () => {
       ignore = true;
@@ -83,12 +92,14 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
   const handleRevoke = async (consentId: string) => {
     setActionLoading(true);
     setActionMessage(null);
+    setActionError(null);
     try {
-      await consentApi.revokeConsent(patientId, consentId);
-      setActionMessage('Consent directive revoked successfully.');
+      const revoked = await consentApi.revokeConsent(patientId, consentId);
+      setActionMessage(`Consent directive for ${revoked.grantedToName || revoked.grantedTo} has been revoked.`);
       await fetchConsents();
-    } catch (err) {
-      setError(err);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setActionError(axiosErr.response?.data?.message || 'Failed to revoke consent directive.');
     } finally {
       setActionLoading(false);
     }
@@ -98,28 +109,38 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
     e.preventDefault();
     setActionLoading(true);
     setActionMessage(null);
+    setActionError(null);
     try {
-      await consentApi.grantConsent(patientId, {
+      const created = await consentApi.grantConsent(patientId, {
         grantedTo,
         scope,
         reason,
       });
-      setActionMessage(`Consent granted to ${grantedTo} successfully.`);
+      setActionMessage(`Consent directive granted to ${created.grantedToName || created.grantedTo} successfully.`);
       setShowGrantForm(false);
       await fetchConsents();
-    } catch (err) {
-      setError(err);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setActionError(axiosErr.response?.data?.message || 'Failed to authorize consent directive.');
     } finally {
       setActionLoading(false);
     }
   };
 
+  // Backend authorization alignment:
+  // Only PATIENT (for their own record) or ADMIN can manage/grant/revoke consent.
+  // PROVIDER role cannot manage consents.
   const canManageConsent = user?.role === 'ADMIN' || user?.role === 'PATIENT';
 
   if (error) {
     return (
-      <Card title="Consent Management">
-        <ErrorState error={error} onRetry={fetchConsents} />
+      <Card title="Patient Consent Directives">
+        <ErrorState
+          error={error}
+          title="Consent Directives Access Denied"
+          message="Unable to access patient consent records. Access is restricted to the patient, assigned providers, or administrators."
+          onRetry={fetchConsents}
+        />
       </Card>
     );
   }
@@ -140,34 +161,50 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
           <div className="consent-verify-details">
             <div className="verify-detail-row">
               <span className="verify-label">Provider ID:</span>
-              <span className="verify-value"><code>{verifyStatus.providerId || 'Current Provider'}</code></span>
+              <span className="verify-value"><code>{verifyStatus.providerId || 'Current Authenticated Provider'}</code></span>
             </div>
             <div className="verify-detail-row">
               <span className="verify-label">Authorization Policy:</span>
-              <span className="verify-value">{verifyStatus.reason}</span>
+              <span className="verify-value">{verifyStatus.reason || 'Not available'}</span>
             </div>
             <div className="verify-detail-row">
-              <span className="verify-label">Verified At:</span>
-              <span className="verify-value">{new Date(verifyStatus.checkedAt).toLocaleString()}</span>
+              <span className="verify-label">Checked Timestamp:</span>
+              <span className="verify-value">
+                {verifyStatus.checkedAt ? new Date(verifyStatus.checkedAt).toLocaleString() : 'Not available'}
+              </span>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Directives Table */}
+      {/* Directives Table Card */}
       <Card
         title={`Patient Consent Directives (${consents.length})`}
-        subtitle={`Legal authorization directives for patient ${patientId}`}
+        subtitle={`Legal authorization directives registered for patient ${patientId}`}
         action={
-          canManageConsent && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               type="button"
-              onClick={() => setShowGrantForm((prev) => !prev)}
-              className="btn btn-primary btn-xs"
+              onClick={fetchConsents}
+              className="btn btn-secondary btn-xs"
+              disabled={isLoading || actionLoading}
             >
-              {showGrantForm ? 'Cancel' : '+ Grant New Consent'}
+              Refresh
             </button>
-          )
+            {canManageConsent && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGrantForm((prev) => !prev);
+                  setActionMessage(null);
+                  setActionError(null);
+                }}
+                className="btn btn-primary btn-xs"
+              >
+                {showGrantForm ? 'Cancel Form' : '+ Grant New Consent'}
+              </button>
+            )}
+          </div>
         }
       >
         {actionMessage && (
@@ -176,7 +213,14 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
           </div>
         )}
 
-        {showGrantForm && (
+        {actionError && (
+          <div className="alert-banner alert-danger" style={{ marginBottom: '1rem' }}>
+            <span>⚠️</span> {actionError}
+          </div>
+        )}
+
+        {/* Grant Directive Form */}
+        {showGrantForm && canManageConsent && (
           <form onSubmit={handleGrant} className="consent-grant-form">
             <h4 className="form-heading">Grant Provider Consent Directive</h4>
             <div className="form-group-row">
@@ -220,7 +264,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                 className="btn btn-primary btn-sm"
                 disabled={actionLoading}
               >
-                {actionLoading ? 'Saving...' : 'Authorize Consent'}
+                {actionLoading ? 'Authorizing...' : 'Save Directive'}
               </button>
               <button
                 type="button"
@@ -234,36 +278,37 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
         )}
 
         {isLoading ? (
-          <LoadingState message="Loading consent directives..." compact />
+          <LoadingState message="Loading patient consent directives..." compact />
         ) : consents.length === 0 ? (
           <EmptyState
             icon="🛡️"
             title="No Consent Directives Found"
-            description="No active or historical consent records exist for this patient."
+            description="No active or historical consent records exist in the consent registry for this patient."
           />
         ) : (
           <div className="clinical-table-wrapper">
             <table className="clinical-table">
               <thead>
                 <tr>
-                  <th>Target Provider</th>
-                  <th>Scope</th>
-                  <th>Status</th>
+                  <th>Grantee Provider</th>
+                  <th>SMART Scope</th>
+                  <th>Directive Status</th>
                   <th>Granted At</th>
-                  <th>Expires</th>
-                  <th>Reason</th>
-                  {canManageConsent && <th>Actions</th>}
+                  <th>Expires At</th>
+                  <th>Revoked At</th>
+                  <th>Purpose / Reason</th>
+                  {canManageConsent && <th>Action</th>}
                 </tr>
               </thead>
               <tbody>
                 {consents.map((consent) => (
                   <tr key={consent.id}>
                     <td>
-                      <strong>{consent.grantedToName}</strong>
-                      <div className="code-subtle">{consent.grantedTo}</div>
+                      <strong>{consent.grantedToName || 'Not available'}</strong>
+                      <div className="code-subtle">{consent.grantedTo || '—'}</div>
                     </td>
                     <td>
-                      <code>{consent.scope}</code>
+                      <code>{consent.scope || 'Not available'}</code>
                     </td>
                     <td>
                       <Badge
@@ -279,13 +324,18 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                         {consent.status}
                       </Badge>
                     </td>
-                    <td>{new Date(consent.grantedAt).toLocaleDateString()}</td>
+                    <td>{consent.grantedAt ? new Date(consent.grantedAt).toLocaleDateString() : 'Not available'}</td>
                     <td>
                       {consent.expiresAt
                         ? new Date(consent.expiresAt).toLocaleDateString()
                         : 'No expiry'}
                     </td>
-                    <td>{consent.reason || '—'}</td>
+                    <td>
+                      {consent.revokedAt
+                        ? new Date(consent.revokedAt).toLocaleDateString()
+                        : '—'}
+                    </td>
+                    <td>{consent.reason || 'Not available'}</td>
                     {canManageConsent && (
                       <td>
                         {consent.status === 'ACTIVE' ? (
