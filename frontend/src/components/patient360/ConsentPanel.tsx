@@ -11,11 +11,15 @@ import { EmptyState } from '../common/EmptyState';
 export interface ConsentPanelProps {
   patientId: string;
   patientName?: string;
+  onConsentMutated?: () => void;
+  onNavigateToAudit?: () => void;
 }
 
 export const ConsentPanel: React.FC<ConsentPanelProps> = ({
   patientId,
   patientName,
+  onConsentMutated,
+  onNavigateToAudit,
 }) => {
   const { user } = useAuth();
   const [consents, setConsents] = useState<ConsentDTO[]>([]);
@@ -26,7 +30,10 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Grant form state
+  // Destructive Revocation Confirmation Modal State
+  const [consentToRevoke, setConsentToRevoke] = useState<ConsentDTO | null>(null);
+
+  // Grant Directive Form State
   const [showGrantForm, setShowGrantForm] = useState(false);
   const [grantedTo, setGrantedTo] = useState('prov-001');
   const [scope, setScope] = useState('patient/*.read');
@@ -40,8 +47,13 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
       const data = await consentApi.getConsents(patientId);
       setConsents(data);
 
-      if (user?.role === 'PROVIDER' || user?.role === 'ADMIN') {
+      if (user?.role === 'PROVIDER') {
         const verifyRes = await consentApi.verifyConsent(patientId);
+        setVerifyStatus(verifyRes);
+      } else if (user?.role === 'ADMIN') {
+        // Admin checks verification for standard provider prov-001 or first consent grantee
+        const targetProvider = data.length > 0 ? data[0].grantedTo : 'prov-001';
+        const verifyRes = await consentApi.verifyConsent(patientId, targetProvider);
         setVerifyStatus(verifyRes);
       }
     } catch (err) {
@@ -59,6 +71,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
         setError(null);
         setActionMessage(null);
         setActionError(null);
+        setConsentToRevoke(null);
       }
     });
 
@@ -68,9 +81,15 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
       }),
     ];
 
-    if (user?.role === 'PROVIDER' || user?.role === 'ADMIN') {
+    if (user?.role === 'PROVIDER') {
       promises.push(
         consentApi.verifyConsent(patientId).then((verifyRes) => {
+          if (!ignore) setVerifyStatus(verifyRes);
+        })
+      );
+    } else if (user?.role === 'ADMIN') {
+      promises.push(
+        consentApi.verifyConsent(patientId, 'prov-001').then((verifyRes) => {
           if (!ignore) setVerifyStatus(verifyRes);
         })
       );
@@ -89,17 +108,30 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
     };
   }, [patientId, user]);
 
-  const handleRevoke = async (consentId: string) => {
+  const handleExecuteRevoke = async () => {
+    if (!consentToRevoke) return;
     setActionLoading(true);
     setActionMessage(null);
     setActionError(null);
+
+    const targetId = consentToRevoke.id;
+    const targetName = consentToRevoke.grantedToName || consentToRevoke.grantedTo;
+
     try {
-      const revoked = await consentApi.revokeConsent(patientId, consentId);
-      setActionMessage(`Consent directive for ${revoked.grantedToName || revoked.grantedTo} has been revoked.`);
+      const revoked = await consentApi.revokeConsent(patientId, targetId);
+      setActionMessage(
+        `Consent directive for ${revoked.grantedToName || revoked.grantedTo || targetName} has been REVOKED.`
+      );
+      setConsentToRevoke(null);
       await fetchConsents();
+      if (onConsentMutated) {
+        onConsentMutated();
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setActionError(axiosErr.response?.data?.message || 'Failed to revoke consent directive.');
+      setActionError(
+        axiosErr.response?.data?.message || 'Failed to revoke consent directive on the backend.'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -116,18 +148,25 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
         scope,
         reason,
       });
-      setActionMessage(`Consent directive granted to ${created.grantedToName || created.grantedTo} successfully.`);
+      setActionMessage(
+        `Consent directive GRANTED to ${created.grantedToName || created.grantedTo} successfully.`
+      );
       setShowGrantForm(false);
       await fetchConsents();
+      if (onConsentMutated) {
+        onConsentMutated();
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setActionError(axiosErr.response?.data?.message || 'Failed to authorize consent directive.');
+      setActionError(
+        axiosErr.response?.data?.message || 'Failed to authorize consent directive on the backend.'
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Backend authorization alignment:
+  // Authoritative Role Alignment:
   // Only PATIENT (for their own record) or ADMIN can manage/grant/revoke consent.
   // PROVIDER role cannot manage consents.
   const canManageConsent = user?.role === 'ADMIN' || user?.role === 'PATIENT';
@@ -137,43 +176,90 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
       <Card title="Patient Consent Directives">
         <ErrorState
           error={error}
-          title="Consent Directives Access Denied"
-          message="Unable to access patient consent records. Access is restricted to the patient, assigned providers, or administrators."
+          title="Consent Directives Access Denied (403 Forbidden)"
+          message="You do not have authorization to view or manage consent directives for this patient."
           onRetry={fetchConsents}
         />
       </Card>
     );
   }
 
+  const activeGrantedCount = consents.filter((c) => c.status === 'GRANTED').length;
+  const revokedCount = consents.filter((c) => c.status === 'REVOKED').length;
+
   return (
     <div className="consent-panel-container">
       {/* Provider Verification Card */}
-      {(user?.role === 'PROVIDER' || user?.role === 'ADMIN') && verifyStatus && (
+      {(user?.role === 'PROVIDER' || user?.role === 'ADMIN') && (
         <Card
           title="Provider Consent Verification"
-          subtitle={`Verification against active consent directives for ${patientName || patientId}`}
+          subtitle={`Authoritative access policy determination for ${patientName || patientId}`}
           action={
-            <Badge variant={verifyStatus.hasConsent ? 'success' : 'danger'}>
-              {verifyStatus.hasConsent ? 'ACTIVE CONSENT VERIFIED' : 'NO ACTIVE CONSENT'}
-            </Badge>
+            verifyStatus ? (
+              <Badge
+                variant={verifyStatus.hasConsent ? 'success' : 'danger'}
+                size="md"
+              >
+                {verifyStatus.hasConsent ? 'ACTIVE / AUTHORIZED' : 'NO ACTIVE CONSENT'}
+              </Badge>
+            ) : (
+              <Badge variant="neutral" size="md">
+                NOT AVAILABLE
+              </Badge>
+            )
           }
         >
-          <div className="consent-verify-details">
-            <div className="verify-detail-row">
-              <span className="verify-label">Provider ID:</span>
-              <span className="verify-value"><code>{verifyStatus.providerId || 'Current Authenticated Provider'}</code></span>
+          {verifyStatus ? (
+            <div className="consent-verify-details">
+              <div className="verify-detail-row">
+                <span className="verify-label">Authorization State:</span>
+                <span className="verify-value">
+                  {verifyStatus.hasConsent ? (
+                    <strong className="text-pass">Authorized — Active Consent Directive Present</strong>
+                  ) : (
+                    <strong className="text-warn">Not Authorized — No Active Consent Found</strong>
+                  )}
+                </span>
+              </div>
+              <div className="verify-detail-row">
+                <span className="verify-label">Provider Context:</span>
+                <span className="verify-value">
+                  <code>
+                    {user.role === 'PROVIDER'
+                      ? user.linkedProviderId || 'prov-001'
+                      : 'prov-001 (Admin Inspection)'}
+                  </code>
+                </span>
+              </div>
+              {verifyStatus.consentId && (
+                <div className="verify-detail-row">
+                  <span className="verify-label">Active Directive ID:</span>
+                  <span className="verify-value">
+                    <code>{verifyStatus.consentId}</code>
+                  </span>
+                </div>
+              )}
+              <div className="verify-detail-row">
+                <span className="verify-label">SMART Scope:</span>
+                <span className="verify-value">
+                  <code>{verifyStatus.scope || 'None'}</code>
+                </span>
+              </div>
+              <div className="verify-detail-row">
+                <span className="verify-label">Directive Expiry:</span>
+                <span className="verify-value">
+                  {verifyStatus.expiresAt
+                    ? new Date(verifyStatus.expiresAt).toLocaleString()
+                    : 'No expiration set'}
+                </span>
+              </div>
             </div>
+          ) : (
             <div className="verify-detail-row">
-              <span className="verify-label">Authorization Policy:</span>
-              <span className="verify-value">{verifyStatus.reason || 'Not available'}</span>
+              <span className="verify-label">Verification:</span>
+              <span className="verify-value text-muted">No provider verification query available.</span>
             </div>
-            <div className="verify-detail-row">
-              <span className="verify-label">Checked Timestamp:</span>
-              <span className="verify-value">
-                {verifyStatus.checkedAt ? new Date(verifyStatus.checkedAt).toLocaleString() : 'Not available'}
-              </span>
-            </div>
-          </div>
+          )}
         </Card>
       )}
 
@@ -182,7 +268,17 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
         title={`Patient Consent Directives (${consents.length})`}
         subtitle={`Legal authorization directives registered for patient ${patientId}`}
         action={
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {activeGrantedCount > 0 && (
+              <Badge variant="success" size="sm">
+                {activeGrantedCount} GRANTED
+              </Badge>
+            )}
+            {revokedCount > 0 && (
+              <Badge variant="neutral" size="sm">
+                {revokedCount} REVOKED
+              </Badge>
+            )}
             <button
               type="button"
               onClick={fetchConsents}
@@ -208,8 +304,20 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
         }
       >
         {actionMessage && (
-          <div className="alert-banner alert-success" style={{ marginBottom: '1rem' }}>
-            <span>✓</span> {actionMessage}
+          <div className="alert-banner alert-success" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span>✓</span> {actionMessage}
+            </div>
+            {onNavigateToAudit && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={onNavigateToAudit}
+                style={{ marginLeft: '1rem' }}
+              >
+                View in Audit Trail →
+              </button>
+            )}
           </div>
         )}
 
@@ -282,8 +390,8 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
         ) : consents.length === 0 ? (
           <EmptyState
             icon="🛡️"
-            title="No Consent Directives Found"
-            description="No active or historical consent records exist in the consent registry for this patient."
+            title="No Consent Directives Available"
+            description="No active or historical data sharing directives have been registered for this patient record."
           />
         ) : (
           <div className="clinical-table-wrapper">
@@ -297,7 +405,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                   <th>Expires At</th>
                   <th>Revoked At</th>
                   <th>Purpose / Reason</th>
-                  {canManageConsent && <th>Action</th>}
+                  {canManageConsent && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -313,10 +421,12 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                     <td>
                       <Badge
                         variant={
-                          consent.status === 'ACTIVE'
+                          consent.status === 'GRANTED'
                             ? 'success'
                             : consent.status === 'REVOKED'
                             ? 'danger'
+                            : consent.status === 'PENDING'
+                            ? 'warning'
                             : 'neutral'
                         }
                         size="sm"
@@ -324,7 +434,11 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                         {consent.status}
                       </Badge>
                     </td>
-                    <td>{consent.grantedAt ? new Date(consent.grantedAt).toLocaleDateString() : 'Not available'}</td>
+                    <td>
+                      {consent.grantedAt
+                        ? new Date(consent.grantedAt).toLocaleDateString()
+                        : 'Not available'}
+                    </td>
                     <td>
                       {consent.expiresAt
                         ? new Date(consent.expiresAt).toLocaleDateString()
@@ -338,14 +452,18 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                     <td>{consent.reason || 'Not available'}</td>
                     {canManageConsent && (
                       <td>
-                        {consent.status === 'ACTIVE' ? (
+                        {consent.status === 'GRANTED' ? (
                           <button
                             type="button"
-                            onClick={() => handleRevoke(consent.id)}
+                            onClick={() => {
+                              setActionMessage(null);
+                              setActionError(null);
+                              setConsentToRevoke(consent);
+                            }}
                             className="btn btn-outline-danger btn-xs"
                             disabled={actionLoading}
                           >
-                            Revoke
+                            Revoke Directive
                           </button>
                         ) : (
                           <span className="text-muted text-xs">Revoked</span>
@@ -359,6 +477,92 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
           </div>
         )}
       </Card>
+
+      {/* Explicit Revocation Confirmation Modal */}
+      {consentToRevoke && (
+        <div className="modal-backdrop" onClick={() => setConsentToRevoke(null)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+            <div className="modal-header">
+              <div className="modal-title-group">
+                <span className="modal-icon text-warn">⚠️</span>
+                <h3 className="modal-title">Confirm Consent Revocation</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConsentToRevoke(null)}
+                className="modal-close-btn"
+                disabled={actionLoading}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p style={{ fontSize: 'var(--font-size-sm)', marginBottom: '1rem', color: 'var(--color-text-primary)' }}>
+                Are you sure you want to revoke this consent directive? Once revoked, the provider will be immediately denied access to this patient&apos;s digital twin and clinical data.
+              </p>
+
+              <div
+                style={{
+                  backgroundColor: 'var(--color-bg-secondary)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 'var(--space-md)',
+                  marginBottom: '1rem',
+                  fontSize: 'var(--font-size-sm)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem',
+                }}
+              >
+                <div>
+                  <span className="meta-label">Grantee Provider: </span>
+                  <strong>{consentToRevoke.grantedToName}</strong> (<code>{consentToRevoke.grantedTo}</code>)
+                </div>
+                <div>
+                  <span className="meta-label">SMART Scope: </span>
+                  <code>{consentToRevoke.scope}</code>
+                </div>
+                <div>
+                  <span className="meta-label">Granted On: </span>
+                  <span>{new Date(consentToRevoke.grantedAt).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="meta-label">Purpose / Reason: </span>
+                  <span>{consentToRevoke.reason || 'Not specified'}</span>
+                </div>
+              </div>
+
+              <div className="vitals-warning-notice" style={{ margin: 0 }}>
+                <span className="notice-icon">ℹ️</span>
+                <div className="notice-content">
+                  <strong>Compliance Note:</strong> This revocation event is immediately appended to the HIPAA-style audit trail as a <code>CONSENT_REVOKED</code> action.
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setConsentToRevoke(null)}
+                className="btn btn-secondary btn-sm"
+                disabled={actionLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteRevoke}
+                className="btn btn-warning btn-sm"
+                disabled={actionLoading}
+                style={{ backgroundColor: 'var(--color-accent-danger)', borderColor: 'var(--color-accent-danger)', color: '#fff' }}
+              >
+                {actionLoading ? 'Revoking Directive...' : 'Yes, Revoke Access'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2378,3 +2378,116 @@ body {
   font-weight: 600;
 }
 
+/* ============================================================
+   Phase 7C: Audit Filtering and Pagination Styles
+   ============================================================ */
+.audit-filter-bar {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.audit-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.audit-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.audit-filter-item .filter-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.audit-filter-select {
+  padding: 0.3rem 0.6rem;
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  outline: none;
+  cursor: pointer;
+}
+
+.audit-filter-select:focus {
+  border-color: var(--color-accent-primary);
+}
+
+.audit-search-item {
+  flex: 1;
+  min-width: 220px;
+}
+
+.audit-search-input {
+  flex: 1;
+  padding: 0.3rem 0.6rem;
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  outline: none;
+}
+
+.audit-search-input:focus {
+  border-color: var(--color-accent-primary);
+}
+
+.audit-filter-reset {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.filter-status-text {
+  color: var(--color-text-secondary);
+}
+
+.audit-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+}
+
+.pagination-info {
+  color: var(--color-text-secondary);
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.pagination-page-indicator {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding: 0.2rem 0.5rem;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+

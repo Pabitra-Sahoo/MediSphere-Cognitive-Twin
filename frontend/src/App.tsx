@@ -40,6 +40,7 @@ const MainShell: React.FC = () => {
   const [selectedTwin, setSelectedTwin] = useState<HealthTwin | null>(null);
   const [recordLoading, setRecordLoading] = useState(false);
   const [recordError, setRecordError] = useState<unknown>(null);
+  const [auditVersion, setAuditVersion] = useState(0);
 
   /**
    * Load authorized patients strictly from authoritative backend response:
@@ -361,12 +362,18 @@ const MainShell: React.FC = () => {
                   key={`consent-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   patientName={patientFullName}
+                  onConsentMutated={() => {
+                    setAuditVersion((v) => v + 1);
+                  }}
+                  onNavigateToAudit={() => {
+                    setActiveTab('audit');
+                  }}
                 />
               )}
 
               {activeTab === 'audit' && (
                 <AuditActivityPanel
-                  key={`audit-tab-${selectedPatient.id}`}
+                  key={`audit-tab-${selectedPatient.id}-${auditVersion}`}
                   patientId={selectedPatient.id}
                 />
               )}

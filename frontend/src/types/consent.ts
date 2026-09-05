@@ -2,7 +2,7 @@
  * Consent domain TypeScript interfaces matching backend ConsentDTO and requests.
  */
 
-export type ConsentStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
+export type ConsentStatus = 'GRANTED' | 'REVOKED' | 'PENDING' | string;
 
 export interface ConsentDTO {
   id: string;
@@ -25,9 +25,11 @@ export interface ConsentCreateRequest {
 }
 
 export interface ConsentVerifyResponse {
-  patientId: string;
-  providerId: string;
   hasConsent: boolean;
-  reason: string;
-  checkedAt: string;
+  consentId?: string | null;
+  scope?: string | null;
+  expiresAt?: string | null;
+  providerId?: string;
+  reason?: string;
+  checkedAt?: string;
 }

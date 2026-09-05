@@ -3,18 +3,23 @@
  */
 
 export type AuditAction =
-  | 'LOGIN'
-  | 'LOGOUT'
+  | 'USER_LOGIN'
+  | 'USER_LOGIN_FAILED'
   | 'VIEW_PATIENT'
   | 'VIEW_TWIN'
   | 'VIEW_VITALS'
   | 'VIEW_LABS'
-  | 'INGEST_FHIR'
-  | 'GRANT_CONSENT'
-  | 'REVOKE_CONSENT'
-  | 'ACCESS_DENIED';
+  | 'FHIR_SYNC'
+  | 'FHIR_VALIDATION_FAIL'
+  | 'CONSENT_GRANTED'
+  | 'CONSENT_REVOKED'
+  | 'CONSENT_VERIFIED'
+  | 'ACCESS_DENIED'
+  | 'VITALS_RECEIVED'
+  | 'VITALS_REJECTED'
+  | string;
 
-export type AuditOutcome = 'SUCCESS' | 'DENIED';
+export type AuditOutcome = 'SUCCESS' | 'FAILURE' | 'DENIED' | string;
 
 export interface AuditLogDTO {
   id: string;
