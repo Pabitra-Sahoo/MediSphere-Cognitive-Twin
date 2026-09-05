@@ -10,7 +10,7 @@ import { Sidebar, type NavTab } from './components/layout/Sidebar';
 import { PatientSelector } from './components/patient360/PatientSelector';
 import { PatientSummary as PatientSummaryView } from './components/patient360/PatientSummary';
 import { CompletenessCard } from './components/patient360/CompletenessCard';
-import { DigitalTwinPlaceholder } from './components/patient360/DigitalTwinPlaceholder';
+import { DigitalTwinViewer } from './components/patient360/DigitalTwinViewer';
 import { VitalsPanel } from './components/patient360/VitalsPanel';
 import { LabsPanel } from './components/patient360/LabsPanel';
 import { FhirPanel } from './components/patient360/FhirPanel';
@@ -248,10 +248,12 @@ const MainShell: React.FC = () => {
                 <div className="overview-two-col-grid">
                   {/* Left Column: 3D Twin Viewport + Completeness Card */}
                   <div className="overview-left-col">
-                    <DigitalTwinPlaceholder
+                    <DigitalTwinViewer
                       patientName={patientFullName}
+                      patientId={selectedPatient.id}
                       vitals={selectedTwin?.latestVitals}
                       labs={selectedTwin?.latestLabs}
+                      completeness={selectedTwin?.completeness}
                     />
                     <CompletenessCard completeness={selectedTwin?.completeness} />
                   </div>
