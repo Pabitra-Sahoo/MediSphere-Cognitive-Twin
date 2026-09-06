@@ -2,6 +2,7 @@ import React from 'react';
 import type { Patient } from '../../types/patient';
 import type { HealthTwin } from '../../types/twin';
 import { Badge } from '../common/Badge';
+import { TwinFreshnessIndicator } from './TwinFreshnessIndicator';
 
 export interface PatientSummaryProps {
   patient: Patient;
@@ -103,6 +104,18 @@ export const PatientSummary: React.FC<PatientSummaryProps> = ({ patient, twin })
           </span>
         </div>
       </div>
+
+      {/* Health Twin Synchronization Freshness & Provenance */}
+      {twin && (
+        <div className="summary-freshness-wrapper">
+          <TwinFreshnessIndicator
+            updatedAt={twin.updatedAt}
+            latestVitalsTime={twin.latestVitals?.timestamp}
+            latestLabsTime={twin.latestLabs?.timestamp}
+            fhirSyncStatus={twin.fhirSyncStatus}
+          />
+        </div>
+      )}
     </div>
   );
 };
