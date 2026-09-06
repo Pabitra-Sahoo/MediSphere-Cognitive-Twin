@@ -88,6 +88,18 @@ export const FhirPanel: React.FC<FhirPanelProps> = ({
     };
   }, [patientId]);
 
+  // Handle keyboard Escape to close inspection modal
+  useEffect(() => {
+    if (!inspectingId) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setInspectingId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [inspectingId]);
+
   const handleIngest = async (_label: string, payload: string) => {
     setIsIngesting(true);
     try {
@@ -320,16 +332,17 @@ export const FhirPanel: React.FC<FhirPanelProps> = ({
       {/* Raw FHIR JSON Inspection Modal */}
       {inspectingId && (
         <div className="modal-backdrop" onClick={() => setInspectingId(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fhir-inspect-title" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title-group">
-                <span className="modal-icon">🔥</span>
-                <h3 className="modal-title">FHIR R4 Resource: <code>{inspectingId}</code></h3>
+                <span className="modal-icon" aria-hidden="true">🔥</span>
+                <h3 id="fhir-inspect-title" className="modal-title">FHIR R4 Resource: <code>{inspectingId}</code></h3>
               </div>
               <button
                 type="button"
                 onClick={() => setInspectingId(null)}
                 className="modal-close-btn"
+                aria-label="Close raw FHIR inspection dialog"
               >
                 ✕
               </button>

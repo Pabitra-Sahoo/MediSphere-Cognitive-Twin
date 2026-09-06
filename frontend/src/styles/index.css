@@ -67,6 +67,8 @@
 html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -75,6 +77,39 @@ body {
   color: var(--color-text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+/* Reusable Clinical Table Wrapper with Horizontal Scroll */
+.clinical-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+.clinical-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.clinical-table-wrapper::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+.clinical-table-wrapper::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.clinical-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-primary);
 }
 
 /* ============================================================
@@ -302,6 +337,10 @@ body {
 .btn-xs {
   padding: 0.25rem 0.5rem;
   font-size: 0.72rem;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ---- Demo Credentials Section ---- */
@@ -1554,6 +1593,34 @@ body {
   overflow: hidden;
 }
 
+.twin-canvas-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(7, 12, 20, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(2px);
+  gap: var(--space-xs);
+}
+
+.twin-canvas-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .twin-visualization-notice {
   margin-top: 0.5rem;
   font-size: 0.7rem;
@@ -2017,6 +2084,7 @@ body {
 
 .clinical-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
 }
@@ -2029,6 +2097,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
 }
 
 .clinical-table td {
@@ -2261,14 +2330,26 @@ body {
 /* Two-Column Overview Layout */
 .overview-two-col-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: var(--space-lg);
+  min-width: 0;
+  width: 100%;
+}
+
+.overview-left-col,
+.overview-right-col {
+  min-width: 0;
+  width: 100%;
 }
 
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .overview-two-col-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .twin-canvas-wrapper {
+    height: 340px;
   }
 }
 
@@ -2288,10 +2369,12 @@ body {
     flex-direction: row;
     overflow-x: auto;
     padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
   }
 
   .sidebar-nav-item {
     white-space: nowrap;
+    padding: 0.5rem 0.75rem;
   }
 
   .sidebar-nav-item.active {
@@ -2307,7 +2390,167 @@ body {
     display: none;
   }
 
+  .shell-main-content {
+    padding: var(--space-md);
+  }
+
+  .patient-selector-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selector-controls {
+    max-width: 100%;
+  }
+
+  .twin-canvas-wrapper {
+    height: 320px;
+  }
+
   .form-group-row {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-primary-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary-completeness-box {
+    align-items: flex-start;
+    text-align: left;
+    margin-top: var(--space-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .shell-header {
+    padding: 0 var(--space-xs);
+    gap: var(--space-xs);
+  }
+
+  .shell-header-brand {
+    gap: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .brand-badge-icon {
+    font-size: 1.25rem;
+  }
+
+  .brand-tagline {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: var(--font-size-sm);
+  }
+
+  .user-username {
+    display: none;
+  }
+
+  .user-profile-chip {
+    padding: 0.2rem 0.35rem;
+  }
+
+  .shell-header-actions {
+    gap: var(--space-xs);
+    flex-shrink: 0;
+  }
+
+  .shell-header-actions .btn {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.72rem;
+  }
+
+  .shell-main-content {
+    padding: var(--space-sm);
+  }
+
+  .twin-canvas-wrapper {
+    height: 280px;
+  }
+
+  .twin-viewport-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .twin-layer-indicators {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .twin-visualization-notice {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .btn-sm, .btn-xs {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .summary-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .summary-avatar-badge {
+    width: 44px;
+    height: 44px;
+    font-size: var(--font-size-base);
+  }
+
+  .summary-patient-name {
+    font-size: var(--font-size-lg);
+  }
+
+  .summary-details-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .audit-filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .audit-search-item {
+    min-width: 100%;
+  }
+
+  .audit-pagination-bar {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+}
+
+@media (max-width: 375px) {
+  .user-profile-chip {
+    display: none;
+  }
+
+  .shell-header-brand {
+    gap: 0.2rem;
+  }
+
+  .brand-name {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .summary-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .twin-layer-indicators {
     grid-template-columns: 1fr;
   }
 }

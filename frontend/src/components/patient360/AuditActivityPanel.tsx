@@ -266,11 +266,13 @@ export const AuditActivityPanel: React.FC<AuditActivityPanelProps> = ({ patientI
           </div>
 
           <div className="audit-filter-item audit-search-item">
-            <label className="filter-label">Search Current Page:</label>
+            <label htmlFor="audit-search-input" className="filter-label">Search Current Page:</label>
             <input
+              id="audit-search-input"
               type="text"
               className="audit-search-input"
               placeholder="Search user, action, details..."
+              aria-label="Search current audit page by user, action, or details"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -415,10 +417,11 @@ export const AuditActivityPanel: React.FC<AuditActivityPanelProps> = ({ patientI
               className="btn btn-secondary btn-xs"
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 0 || isLoading}
+              aria-label="Go to previous audit page"
             >
               ← Previous Page
             </button>
-            <span className="pagination-page-indicator">
+            <span className="pagination-page-indicator" aria-label={`Current page ${page + 1} of ${totalPages}`}>
               {page + 1} / {totalPages}
             </span>
             <button
@@ -426,6 +429,7 @@ export const AuditActivityPanel: React.FC<AuditActivityPanelProps> = ({ patientI
               className="btn btn-secondary btn-xs"
               onClick={() => handlePageChange(page + 1)}
               disabled={page >= totalPages - 1 || isLoading}
+              aria-label="Go to next audit page"
             >
               Next Page →
             </button>

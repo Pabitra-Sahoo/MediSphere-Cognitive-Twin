@@ -55,13 +55,14 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenDiagnostics}
             className="btn btn-outline btn-xs"
             title="Open M1 RBAC & API verification diagnostics"
+            aria-label="Open system diagnostics modal"
           >
             Diagnostics
           </button>
         )}
 
-        <div className="user-profile-chip">
-          <span className="user-avatar-glyph">👤</span>
+        <div className="user-profile-chip" aria-label={`Logged in as ${user?.username || 'User'}, role: ${user?.role || 'GUEST'}`}>
+          <span className="user-avatar-glyph" aria-hidden="true">👤</span>
           <div className="user-info-text">
             <span className="user-username">{user?.username || 'User'}</span>
             <Badge variant={getRoleBadgeVariant(user?.role)} size="sm">
@@ -75,6 +76,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={logout}
           className="btn btn-outline-danger btn-sm"
           title="Sign out of current session"
+          aria-label="Sign out of current session"
         >
           Sign Out
         </button>

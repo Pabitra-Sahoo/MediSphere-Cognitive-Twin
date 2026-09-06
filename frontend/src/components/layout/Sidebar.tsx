@@ -48,9 +48,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className="shell-sidebar">
+    <aside className="shell-sidebar" aria-label="Clinical sidebar navigation">
       <div className="sidebar-section-title">CLINICAL NAVIGATION</div>
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" aria-label="Clinical navigation tabs">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
@@ -59,8 +59,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="button"
               className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
               onClick={() => onTabChange(item.id)}
+              aria-current={isActive ? 'page' : undefined}
             >
-              <span className="nav-item-icon">{item.icon}</span>
+              <span className="nav-item-icon" aria-hidden="true">{item.icon}</span>
               <span className="nav-item-label">{item.label}</span>
               {item.badge && <span className="nav-item-badge">{item.badge}</span>}
             </button>

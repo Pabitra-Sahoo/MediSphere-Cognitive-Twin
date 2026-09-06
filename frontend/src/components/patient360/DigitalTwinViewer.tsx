@@ -7,16 +7,19 @@ import { HumanoidModel } from './HumanoidModel';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 
+import { LoadingState } from '../common/LoadingState';
+
 export interface DigitalTwinViewerProps {
   patientName?: string;
   patientId?: string;
   vitals?: TwinVitals;
   labs?: TwinLabs;
   completeness?: TwinCompleteness;
+  isLoading?: boolean;
 }
 
 /**
- * 3D Digital Twin Viewer for MediSphere Cognitive Twin (Phase 7D).
+ * 3D Digital Twin Viewer for MediSphere Cognitive Twin (Phase 7D/7E).
  * Renders an interactive 3D humanoid anatomical representation alongside
  * authenticated real physiological twin telemetry.
  */
@@ -26,6 +29,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
   vitals,
   labs,
   completeness,
+  isLoading = false,
 }) => {
   const controlsRef = useRef<OrbitControlsType>(null);
   const [hasRenderError, setHasRenderError] = useState(false);
@@ -61,6 +65,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
             className="btn btn-secondary btn-xs"
             onClick={handleResetCamera}
             title="Reset 3D camera to default viewpoint"
+            aria-label="Reset 3D camera to default viewpoint"
           >
             Reset Camera
           </button>
@@ -76,16 +81,35 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
             <strong className="twin-patient-name">{patientName || patientId}</strong>
             {patientId && <code className="code-subtle">({patientId})</code>}
           </div>
-          <div className="twin-header-controls-hint">
+          <div className="twin-header-controls-hint" aria-hidden="true">
             <span>🖱️ Orbit: Left-drag • Zoom: Scroll • Pan: Right-drag</span>
           </div>
         </div>
 
         {/* 3D WebGL Canvas Viewport */}
-        <div className="twin-canvas-wrapper" style={{ height: '380px', position: 'relative', width: '100%', backgroundColor: '#070c14', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+        <div
+          className="twin-canvas-wrapper"
+          role="region"
+          aria-label={`Interactive 3D anatomical humanoid model for patient ${patientName || patientId || 'selected'}. Current vitals: Heart rate ${hr !== undefined ? `${hr} bpm` : 'Not available'}, SpO2 ${spo2 !== undefined ? `${spo2}%` : 'Not available'}.`}
+          tabIndex={0}
+        >
+          {/* Screen-reader descriptive summary */}
+          <p className="twin-canvas-sr-only">
+            Interactive Three.js 3D viewport displaying a neutral geometric humanoid anatomical model.
+            Use mouse drag to orbit and rotate, mouse wheel to zoom in and out, and right-click drag to pan.
+            Refer to the clinical data chips below for exact physiological measurements.
+          </p>
+
+          {/* Loading overlay during patient switching */}
+          {isLoading && (
+            <div className="twin-canvas-loading-overlay">
+              <LoadingState message="Updating digital twin spatial model..." compact />
+            </div>
+          )}
+
           {hasRenderError ? (
             <div className="clinical-empty-state" style={{ padding: '3rem 1rem' }}>
-              <span className="empty-state-icon">⚠️</span>
+              <span className="empty-state-icon" aria-hidden="true">⚠️</span>
               <h4 className="empty-state-title">3D WebGL Context Unavailable</h4>
               <p className="empty-state-desc">
                 Your browser or device does not currently support WebGL rendering. Real physiological metrics remain accessible in the panels below.
@@ -124,7 +148,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
           )}
 
           {/* Spatial Grid Floor Overlay Effect */}
-          <div className="viewport-grid-background" style={{ pointerEvents: 'none' }} />
+          <div className="viewport-grid-background" style={{ pointerEvents: 'none' }} aria-hidden="true" />
         </div>
 
         {/* Real Physiological Twin Layer Indicators */}

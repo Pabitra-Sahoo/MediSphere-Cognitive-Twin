@@ -101,35 +101,10 @@ const MainShell: React.FC = () => {
   // Initial load when user logs in
   useEffect(() => {
     if (!isAuthenticated || !user) return;
-    let ignore = false;
-    if (user.role === 'ADMIN' || user.role === 'PROVIDER') {
-      patientApi.getPatients(0, 50)
-        .then((paged) => {
-          if (!ignore) {
-            setAuthorizedPatients(paged.content);
-            if (paged.content.length > 0) {
-              setSelectedPatientId((prev) => {
-                const exists = paged.content.some((p) => p.id === prev);
-                return exists ? prev : paged.content[0].id;
-              });
-            }
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to retrieve authorized patients:', err);
-        });
-    } else if (user.role === 'PATIENT' && user.linkedPatientId) {
-      const pid = user.linkedPatientId;
-      queueMicrotask(() => {
-        if (!ignore) {
-          setSelectedPatientId(pid);
-        }
-      });
-    }
-    return () => {
-      ignore = true;
-    };
-  }, [isAuthenticated, user]);
+    queueMicrotask(() => {
+      loadAuthorizedPatients();
+    });
+  }, [isAuthenticated, user, loadAuthorizedPatients]);
 
   // Load details whenever selected patient ID changes
   useEffect(() => {
@@ -141,8 +116,11 @@ const MainShell: React.FC = () => {
       return;
     }
     let ignore = false;
+    // Immediately clear previous patient record to prevent any stale data flash
     queueMicrotask(() => {
       if (!ignore) {
+        setSelectedPatient(null);
+        setSelectedTwin(null);
         setRecordLoading(true);
         setRecordError(null);
       }
@@ -254,6 +232,7 @@ const MainShell: React.FC = () => {
                       vitals={selectedTwin?.latestVitals}
                       labs={selectedTwin?.latestLabs}
                       completeness={selectedTwin?.completeness}
+                      isLoading={recordLoading}
                     />
                     <CompletenessCard completeness={selectedTwin?.completeness} />
                   </div>

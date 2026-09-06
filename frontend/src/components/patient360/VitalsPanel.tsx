@@ -322,7 +322,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
                           {record.source || 'Not available'}
                         </Badge>
                       </td>
-                      <td>{record.deviceId ? <code>{record.deviceId}</code> : '—'}</td>
+                      <td>{record.deviceId ? <code>{record.deviceId}</code> : 'Not available'}</td>
                       <td>{record.heartRate !== undefined ? `${record.heartRate} bpm` : 'Not available'}</td>
                       <td>
                         {record.systolicBP !== undefined && record.diastolicBP !== undefined

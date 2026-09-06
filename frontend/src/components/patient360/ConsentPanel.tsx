@@ -108,6 +108,18 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
     };
   }, [patientId, user]);
 
+  // Handle keyboard Escape to close revocation modal
+  useEffect(() => {
+    if (!consentToRevoke) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !actionLoading) {
+        setConsentToRevoke(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [consentToRevoke, actionLoading]);
+
   const handleExecuteRevoke = async () => {
     if (!consentToRevoke) return;
     setActionLoading(true);
@@ -413,7 +425,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                   <tr key={consent.id}>
                     <td>
                       <strong>{consent.grantedToName || 'Not available'}</strong>
-                      <div className="code-subtle">{consent.grantedTo || '—'}</div>
+                      <div className="code-subtle">{consent.grantedTo || 'Not available'}</div>
                     </td>
                     <td>
                       <code>{consent.scope || 'Not available'}</code>
@@ -447,7 +459,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                     <td>
                       {consent.revokedAt
                         ? new Date(consent.revokedAt).toLocaleDateString()
-                        : '—'}
+                        : 'Not revoked'}
                     </td>
                     <td>{consent.reason || 'Not available'}</td>
                     {canManageConsent && (
@@ -462,6 +474,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
                             }}
                             className="btn btn-outline-danger btn-xs"
                             disabled={actionLoading}
+                            aria-label={`Revoke consent for ${consent.grantedToName || consent.grantedTo}`}
                           >
                             Revoke Directive
                           </button>
@@ -480,18 +493,26 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
 
       {/* Explicit Revocation Confirmation Modal */}
       {consentToRevoke && (
-        <div className="modal-backdrop" onClick={() => setConsentToRevoke(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '560px' }}>
+        <div className="modal-backdrop" onClick={() => !actionLoading && setConsentToRevoke(null)}>
+          <div
+            className="modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="revoke-modal-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '560px' }}
+          >
             <div className="modal-header">
               <div className="modal-title-group">
-                <span className="modal-icon text-warn">⚠️</span>
-                <h3 className="modal-title">Confirm Consent Revocation</h3>
+                <span className="modal-icon text-warn" aria-hidden="true">⚠️</span>
+                <h3 id="revoke-modal-title" className="modal-title">Confirm Consent Revocation</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setConsentToRevoke(null)}
                 className="modal-close-btn"
                 disabled={actionLoading}
+                aria-label="Close consent revocation dialog"
               >
                 ✕
               </button>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { patientApi } from '../../api/patientApi';
 import { authApi } from '../../api/authApi';
@@ -22,6 +22,18 @@ export const DiagnosticsModal: React.FC<DiagnosticsModalProps> = ({
   } | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [showAdminPreview, setShowAdminPreview] = useState(false);
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -59,7 +71,7 @@ export const DiagnosticsModal: React.FC<DiagnosticsModalProps> = ({
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status: number; data: unknown } };
       setTestResult({
-        endpoint: 'GET /api/status',
+        endpoint: 'GET /api/status (Public)',
         status: axiosErr.response?.status || 'Error',
         data: axiosErr.response?.data || String(err),
         error: true,
@@ -71,13 +83,24 @@ export const DiagnosticsModal: React.FC<DiagnosticsModalProps> = ({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-dialog diagnostics-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="diagnostics-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <div className="modal-title-group">
-            <span className="modal-icon">🛠️</span>
-            <h3 className="modal-title">System Diagnostics & RBAC Verification</h3>
+            <span className="modal-icon" aria-hidden="true">⚙️</span>
+            <h3 id="diagnostics-modal-title" className="modal-title">System & RBAC Diagnostics</h3>
           </div>
-          <button type="button" onClick={onClose} className="modal-close-btn">
+          <button
+            type="button"
+            onClick={onClose}
+            className="modal-close-btn"
+            aria-label="Close diagnostics dialog"
+          >
             ✕
           </button>
         </div>
