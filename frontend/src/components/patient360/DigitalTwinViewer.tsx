@@ -6,6 +6,7 @@ import type { TwinVitals, TwinLabs, TwinCompleteness } from '../../types/twin';
 import { HumanoidModel } from './HumanoidModel';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
+import { Activity, HeartPulse, Wind, Thermometer, FlaskConical, RotateCcw } from 'lucide-react';
 
 import { LoadingState } from '../common/LoadingState';
 
@@ -66,7 +67,9 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
             onClick={handleResetCamera}
             title="Reset 3D camera to default viewpoint"
             aria-label="Reset 3D camera to default viewpoint"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
           >
+            <RotateCcw size={12} strokeWidth={2} />
             Reset Camera
           </button>
         </div>
@@ -82,7 +85,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
             {patientId && <code className="code-subtle">({patientId})</code>}
           </div>
           <div className="twin-header-controls-hint" aria-hidden="true">
-            <span>🖱️ Orbit: Left-drag • Zoom: Scroll • Pan: Right-drag</span>
+            <span>Orbit: Left-drag · Zoom: Scroll · Pan: Right-drag</span>
           </div>
         </div>
 
@@ -154,7 +157,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
         {/* Real Physiological Twin Layer Indicators */}
         <div className="twin-layer-indicators" style={{ marginTop: '0.75rem' }}>
           <div className="layer-chip">
-            <span className="chip-icon">💓</span>
+            <span className="chip-icon"><Activity size={13} strokeWidth={2} /></span>
             <span className="chip-title">Cardiovascular</span>
             <span className="chip-data">
               {hr !== undefined ? `${hr} bpm` : 'Not available'}
@@ -162,7 +165,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🩸</span>
+            <span className="chip-icon"><HeartPulse size={13} strokeWidth={2} /></span>
             <span className="chip-title">Blood Pressure</span>
             <span className="chip-data">
               {sbp !== undefined && dbp !== undefined ? `${sbp}/${dbp} mmHg` : 'Not available'}
@@ -170,7 +173,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🫁</span>
+            <span className="chip-icon"><Wind size={13} strokeWidth={2} /></span>
             <span className="chip-title">Respiratory</span>
             <span className="chip-data">
               {spo2 !== undefined ? `${spo2}% SpO2` : 'Not available'}
@@ -178,7 +181,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🌡️</span>
+            <span className="chip-icon"><Thermometer size={13} strokeWidth={2} /></span>
             <span className="chip-title">Thermal</span>
             <span className="chip-data">
               {temp !== undefined ? `${temp} °C` : 'Not available'}
@@ -186,7 +189,7 @@ export const DigitalTwinViewer: React.FC<DigitalTwinViewerProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🧪</span>
+            <span className="chip-icon"><FlaskConical size={13} strokeWidth={2} /></span>
             <span className="chip-title">Biochemistry</span>
             <span className="chip-data">
               {glu !== undefined ? `${glu} mg/dL Glu` : 'Not available'}

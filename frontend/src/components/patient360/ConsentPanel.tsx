@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { ConsentDTO, ConsentVerifyResponse } from '../../types/consent';
 import { consentApi } from '../../api/consentApi';
 import { useAuth } from '../../auth/useAuth';
+import { ShieldCheck } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { LoadingState } from '../common/LoadingState';
@@ -401,7 +402,7 @@ export const ConsentPanel: React.FC<ConsentPanelProps> = ({
           <LoadingState message="Loading patient consent directives..." compact />
         ) : consents.length === 0 ? (
           <EmptyState
-            icon="🛡️"
+            icon={<ShieldCheck size={24} strokeWidth={1.5} />}
             title="No Consent Directives Available"
             description="No active or historical data sharing directives have been registered for this patient record."
           />

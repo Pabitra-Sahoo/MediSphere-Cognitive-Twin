@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { TwinLabs } from '../../types/twin';
 import type { LabResultRecord } from '../../types/lab';
 import { labApi } from '../../api/labApi';
+import { FlaskConical } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { LoadingState } from '../common/LoadingState';
@@ -177,64 +178,100 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
         </Badge>
       }
     >
-      {/* Latest Diagnostic Summary Cards */}
-      <div className="labs-metrics-grid">
-        {/* Glucose */}
-        <div className="lab-metric-card">
-          <div className="lab-card-header">
-            <span className="lab-name">Fasting Glucose</span>
-            <span className="lab-icon">🍬</span>
+      {/* Latest Diagnostic Summary — Concise Strip when showHistory, compact grid when in widget */}
+      {showHistory ? (
+        <div className="labs-summary-strip">
+          <div className="summary-metric-item">
+            <span className="metric-label">Glucose</span>
+            <div className="metric-value-line">
+              <span className="metric-num">{glucose !== undefined ? glucose : '—'}</span>
+              <span className="metric-unit">mg/dL</span>
+            </div>
+            <span className="metric-ref-inline">Ref: {findLabRefRange('glucose')}</span>
           </div>
-          <div className="lab-value-row">
-            <span className="lab-value">{glucose !== undefined ? glucose : 'Not available'}</span>
-            {glucose !== undefined && <span className="lab-unit">mg/dL</span>}
+          <div className="summary-metric-divider" />
+          <div className="summary-metric-item">
+            <span className="metric-label">Cholesterol</span>
+            <div className="metric-value-line">
+              <span className="metric-num">{cholesterol !== undefined ? cholesterol : '—'}</span>
+              <span className="metric-unit">mg/dL</span>
+            </div>
+            <span className="metric-ref-inline">Ref: {findLabRefRange('cholesterol')}</span>
           </div>
-          <div className="lab-ref-range">Reference: {findLabRefRange('glucose')}</div>
+          <div className="summary-metric-divider" />
+          <div className="summary-metric-item">
+            <span className="metric-label">Hemoglobin</span>
+            <div className="metric-value-line">
+              <span className="metric-num">{hemoglobin !== undefined ? hemoglobin : '—'}</span>
+              <span className="metric-unit">g/dL</span>
+            </div>
+            <span className="metric-ref-inline">Ref: {findLabRefRange('hemoglobin')}</span>
+          </div>
+          <div className="summary-metric-divider" />
+          <div className="summary-metric-item">
+            <span className="metric-label">Creatinine</span>
+            <div className="metric-value-line">
+              <span className="metric-num">{creatinine !== undefined ? creatinine : '—'}</span>
+              <span className="metric-unit">mg/dL</span>
+            </div>
+            <span className="metric-ref-inline">Ref: {findLabRefRange('creatinine')}</span>
+          </div>
         </div>
+      ) : (
+        <div className="labs-metrics-grid">
+          {/* Glucose */}
+          <div className="lab-metric-card">
+            <div className="lab-card-header">
+              <span className="lab-name">Fasting Glucose</span>
+            </div>
+            <div className="lab-value-row">
+              <span className="lab-value">{glucose !== undefined ? glucose : 'Not available'}</span>
+              {glucose !== undefined && <span className="lab-unit">mg/dL</span>}
+            </div>
+            <div className="lab-ref-range">Reference: {findLabRefRange('glucose')}</div>
+          </div>
 
-        {/* Total Cholesterol */}
-        <div className="lab-metric-card">
-          <div className="lab-card-header">
-            <span className="lab-name">Total Cholesterol</span>
-            <span className="lab-icon">🧪</span>
+          {/* Total Cholesterol */}
+          <div className="lab-metric-card">
+            <div className="lab-card-header">
+              <span className="lab-name">Total Cholesterol</span>
+            </div>
+            <div className="lab-value-row">
+              <span className="lab-value">{cholesterol !== undefined ? cholesterol : 'Not available'}</span>
+              {cholesterol !== undefined && <span className="lab-unit">mg/dL</span>}
+            </div>
+            <div className="lab-ref-range">Reference: {findLabRefRange('cholesterol')}</div>
           </div>
-          <div className="lab-value-row">
-            <span className="lab-value">{cholesterol !== undefined ? cholesterol : 'Not available'}</span>
-            {cholesterol !== undefined && <span className="lab-unit">mg/dL</span>}
-          </div>
-          <div className="lab-ref-range">Reference: {findLabRefRange('cholesterol')}</div>
-        </div>
 
-        {/* Hemoglobin */}
-        <div className="lab-metric-card">
-          <div className="lab-card-header">
-            <span className="lab-name">Hemoglobin</span>
-            <span className="lab-icon">🩸</span>
+          {/* Hemoglobin */}
+          <div className="lab-metric-card">
+            <div className="lab-card-header">
+              <span className="lab-name">Hemoglobin</span>
+            </div>
+            <div className="lab-value-row">
+              <span className="lab-value">{hemoglobin !== undefined ? hemoglobin : 'Not available'}</span>
+              {hemoglobin !== undefined && <span className="lab-unit">g/dL</span>}
+            </div>
+            <div className="lab-ref-range">Reference: {findLabRefRange('hemoglobin')}</div>
           </div>
-          <div className="lab-value-row">
-            <span className="lab-value">{hemoglobin !== undefined ? hemoglobin : 'Not available'}</span>
-            {hemoglobin !== undefined && <span className="lab-unit">g/dL</span>}
-          </div>
-          <div className="lab-ref-range">Reference: {findLabRefRange('hemoglobin')}</div>
-        </div>
 
-        {/* Serum Creatinine */}
-        <div className="lab-metric-card">
-          <div className="lab-card-header">
-            <span className="lab-name">Serum Creatinine</span>
-            <span className="lab-icon">💧</span>
+          {/* Serum Creatinine */}
+          <div className="lab-metric-card">
+            <div className="lab-card-header">
+              <span className="lab-name">Serum Creatinine</span>
+            </div>
+            <div className="lab-value-row">
+              <span className="lab-value">{creatinine !== undefined ? creatinine : 'Not available'}</span>
+              {creatinine !== undefined && <span className="lab-unit">mg/dL</span>}
+            </div>
+            <div className="lab-ref-range">Reference: {findLabRefRange('creatinine')}</div>
           </div>
-          <div className="lab-value-row">
-            <span className="lab-value">{creatinine !== undefined ? creatinine : 'Not available'}</span>
-            {creatinine !== undefined && <span className="lab-unit">mg/dL</span>}
-          </div>
-          <div className="lab-ref-range">Reference: {findLabRefRange('creatinine')}</div>
         </div>
-      </div>
+      )}
 
       {!hasAnyLatestLab && labs.length === 0 && !isLoading && (
         <EmptyState
-          icon="🧪"
+          icon={undefined}
           title="No Laboratory Results Found"
           description="No diagnostic laboratory tests or biochemical observations have been reported for this patient."
         />
@@ -278,7 +315,7 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
               className={`metric-tab-btn ${selectedAnalyte === 'glucose' ? 'active' : ''}`}
               onClick={() => setSelectedAnalyte('glucose')}
             >
-              🍬 Fasting Glucose ({glucoseSeries.points.length})
+              Glucose ({glucoseSeries.points.length})
             </button>
             <button
               type="button"
@@ -287,7 +324,7 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
               className={`metric-tab-btn ${selectedAnalyte === 'cholesterol' ? 'active' : ''}`}
               onClick={() => setSelectedAnalyte('cholesterol')}
             >
-              🧪 Cholesterol ({cholesterolSeries.points.length})
+              Cholesterol ({cholesterolSeries.points.length})
             </button>
             <button
               type="button"
@@ -296,7 +333,7 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
               className={`metric-tab-btn ${selectedAnalyte === 'hemoglobin' ? 'active' : ''}`}
               onClick={() => setSelectedAnalyte('hemoglobin')}
             >
-              🩸 Hemoglobin ({hemoglobinSeries.points.length})
+              Hemoglobin ({hemoglobinSeries.points.length})
             </button>
             <button
               type="button"
@@ -305,7 +342,7 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
               className={`metric-tab-btn ${selectedAnalyte === 'creatinine' ? 'active' : ''}`}
               onClick={() => setSelectedAnalyte('creatinine')}
             >
-              💧 Creatinine ({creatinineSeries.points.length})
+              Creatinine ({creatinineSeries.points.length})
             </button>
           </div>
 
@@ -434,7 +471,7 @@ export const LabsPanel: React.FC<LabsPanelProps> = ({
               <LoadingState message="Loading laboratory reports..." compact />
             ) : labs.length === 0 ? (
               <EmptyState
-                icon="🧪"
+                icon={<FlaskConical size={24} strokeWidth={1.5} />}
                 title="No Discrete Lab Test Records"
                 description="No historical laboratory orders or test records exist in the laboratory store for this patient."
               />

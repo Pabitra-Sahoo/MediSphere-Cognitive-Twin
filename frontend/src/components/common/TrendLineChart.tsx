@@ -1,4 +1,5 @@
 import React, { useState, useId } from 'react';
+import { TrendingUp, AlertTriangle } from 'lucide-react';
 
 export interface TrendDataPoint {
   /** ISO timestamp string of observation */
@@ -82,7 +83,9 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
   if (validPoints.length === 0) {
     return (
       <div className="trend-chart-empty-state" style={{ minHeight: height }}>
-        <span className="empty-icon" aria-hidden="true">📈</span>
+        <span className="empty-icon" aria-hidden="true">
+          <TrendingUp size={28} strokeWidth={1.5} />
+        </span>
         <strong className="empty-title">No Historical Observations</strong>
         <p className="empty-text">No recorded telemetry points available for {title}.</p>
       </div>
@@ -398,7 +401,7 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
                   textAnchor="middle"
                   aria-hidden="true"
                 >
-                  ⚠️
+                  !
                 </text>
               )}
             </g>
@@ -453,7 +456,10 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
             {hoveredPoint.point.validationErrors && hoveredPoint.point.validationErrors.length > 0 && (
               <div className="tooltip-validation-errors">
                 {hoveredPoint.point.validationErrors.map((err, idx) => (
-                  <div key={idx} className="tooltip-error-line">⚠️ {err}</div>
+                  <div key={idx} className="tooltip-error-line">
+                    <AlertTriangle size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                    {err}
+                  </div>
                 ))}
               </div>
             )}

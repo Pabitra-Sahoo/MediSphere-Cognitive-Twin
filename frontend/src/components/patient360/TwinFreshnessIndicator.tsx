@@ -1,4 +1,5 @@
 import React from 'react';
+import { Clock, Zap } from 'lucide-react';
 import type { TwinFhirSyncStatus } from '../../types/twin';
 
 export interface TwinFreshnessIndicatorProps {
@@ -72,11 +73,12 @@ export const TwinFreshnessIndicator: React.FC<TwinFreshnessIndicatorProps> = ({
     return (
       <div className="twin-freshness-chip" title={`Twin updated: ${twinAge} • Vitals: ${vitalsAge} • Labs: ${labsAge}`}>
         <span className={`sync-status-indicator ${isSyncCurrent ? 'status-current' : 'status-standby'}`} />
-        <span className="freshness-label">Twin Sync:</span>
+        <Clock size={11} strokeWidth={1.75} aria-hidden="true" style={{ opacity: 0.6 }} />
+        <span className="freshness-label">Sync:</span>
         <span className="freshness-value">{twinAge}</span>
         {streamingLatencyMs !== undefined && streamingLatencyMs !== null && (
           <span className="latency-badge" title="Telemetry ingestion latency (receivedAt - recordedAt)">
-            ⚡ {streamingLatencyMs}ms
+            <Zap size={10} aria-hidden="true" /> {streamingLatencyMs}ms
           </span>
         )}
       </div>
@@ -88,7 +90,7 @@ export const TwinFreshnessIndicator: React.FC<TwinFreshnessIndicatorProps> = ({
       <div className="freshness-header-row">
         <div className="freshness-title-group">
           <span className={`sync-status-indicator ${isSyncCurrent ? 'status-current' : 'status-standby'}`} />
-          <span className="freshness-title">Data Freshness & Provenance</span>
+          <span className="freshness-title">Data Freshness &amp; Provenance</span>
           <span className="freshness-technical-badge">
             {isSyncCurrent ? 'Sync Current' : 'Sync Standby'}
           </span>

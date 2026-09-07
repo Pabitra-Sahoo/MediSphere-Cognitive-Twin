@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { UserRound } from 'lucide-react';
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
 import { LoginPage } from './auth/LoginPage';
@@ -35,6 +36,18 @@ const MainShell: React.FC = () => {
   // Navigation and Modal State
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  // Auto-close mobile drawer when viewport expands to desktop breakpoint (>= 768px)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileNavOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Patient Listing & Selection State
   const [authorizedPatients, setAuthorizedPatients] = useState<PatientSummary[]>([]);
@@ -184,14 +197,18 @@ const MainShell: React.FC = () => {
       <Header
         selectedPatient={selectedPatient}
         onOpenDiagnostics={() => setIsDiagnosticsOpen(true)}
+        isMobileNavOpen={isMobileNavOpen}
+        onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
       />
 
       <div className="shell-body">
-        {/* Navigation Sidebar */}
+        {/* Navigation Sidebar / Mobile Drawer */}
         <Sidebar
           activeTab={activeTab}
           onTabChange={setActiveTab}
           selectedPatientId={selectedPatientId}
+          isOpen={isMobileNavOpen}
+          onClose={() => setIsMobileNavOpen(false)}
         />
 
         {/* Central Content Area */}
@@ -218,18 +235,22 @@ const MainShell: React.FC = () => {
             </Card>
           ) : !selectedPatient ? (
             <EmptyState
-              icon="👤"
+              icon={<UserRound size={24} strokeWidth={1.5} />}
               title="No Patient Selected"
               description="Please select an authorized patient from the dropdown above to inspect their digital twin."
             />
           ) : (
             <>
-              {/* Prominent Patient Summary Banner */}
-              <PatientSummaryView patient={selectedPatient} twin={selectedTwin} />
+              {/* Patient Summary Banner — Rich on Overview, Compact on Secondary Pages */}
+              <PatientSummaryView
+                patient={selectedPatient}
+                twin={selectedTwin}
+                compact={activeTab !== 'overview'}
+              />
 
               {/* View Tab Contents */}
               {activeTab === 'overview' && (
-                <div className="overview-two-col-grid">
+                <div className="overview-two-col-grid tab-panel-fade">
                   {/* Left Column: 3D Twin Viewport + Completeness Card */}
                   <div className="overview-left-col">
                     <React.Suspense
@@ -271,7 +292,7 @@ const MainShell: React.FC = () => {
               )}
 
               {activeTab === 'patient360' && (
-                <div className="patient-360-full-view">
+                <div className="patient-360-full-view tab-panel-fade">
                   <CompletenessCard completeness={selectedTwin?.completeness} />
 
                   <Card
@@ -324,24 +345,29 @@ const MainShell: React.FC = () => {
               )}
 
               {activeTab === 'vitals' && (
+                <div className="tab-panel-fade">
                 <VitalsPanel
                   key={`vitals-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   twinVitals={selectedTwin?.latestVitals}
                   showHistory={true}
                 />
+                </div>
               )}
 
               {activeTab === 'labs' && (
+                <div className="tab-panel-fade">
                 <LabsPanel
                   key={`labs-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
                   twinLabs={selectedTwin?.latestLabs}
                   showHistory={true}
                 />
+                </div>
               )}
 
               {activeTab === 'fhir' && (
+                <div className="tab-panel-fade">
                 <FhirPanel
                   key={`fhir-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
@@ -351,9 +377,11 @@ const MainShell: React.FC = () => {
                     loadPatientDetails(selectedPatient.id);
                   }}
                 />
+                </div>
               )}
 
               {activeTab === 'consent' && (
+                <div className="tab-panel-fade">
                 <ConsentPanel
                   key={`consent-tab-${selectedPatient.id}`}
                   patientId={selectedPatient.id}
@@ -365,13 +393,16 @@ const MainShell: React.FC = () => {
                     setActiveTab('audit');
                   }}
                 />
+                </div>
               )}
 
               {activeTab === 'audit' && (
+                <div className="tab-panel-fade">
                 <AuditActivityPanel
                   key={`audit-tab-${selectedPatient.id}-${auditVersion}`}
                   patientId={selectedPatient.id}
                 />
+                </div>
               )}
             </>
           )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle, ShieldOff } from 'lucide-react';
 
 export interface ErrorStateProps {
   error?: unknown;
@@ -31,7 +32,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   return (
     <div className={`clinical-error-card ${isForbidden ? 'forbidden-card' : ''}`}>
       <div className="error-card-header">
-        <span className="error-icon">{isForbidden ? '🔒' : '⚠️'}</span>
+        <span className="error-icon" aria-hidden="true">
+          {isForbidden ? <ShieldOff size={18} strokeWidth={1.75} /> : <AlertTriangle size={18} strokeWidth={1.75} />}
+        </span>
         <div>
           <h4 className="error-title">{title || defaultTitle}</h4>
           <p className="error-description">{defaultMessage}</p>

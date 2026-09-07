@@ -1,4 +1,5 @@
 import React from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import type { TwinCompleteness } from '../../types/twin';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
@@ -75,7 +76,7 @@ export const CompletenessCard: React.FC<CompletenessCardProps> = ({
           </div>
         ) : (
           <div className="all-fields-complete-notice">
-            <span className="complete-check-icon">✓</span>
+            <CheckCircle2 size={16} className="complete-check-icon" aria-hidden="true" />
             <span>All {totalFields} required logical fields are fully populated (100% complete).</span>
           </div>
         )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AuditLogDTO } from '../../types/audit';
 import { auditApi } from '../../api/auditApi';
 import { useAuth } from '../../auth/useAuth';
+import { Lock, ScrollText } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { LoadingState } from '../common/LoadingState';
@@ -149,7 +150,9 @@ export const AuditActivityPanel: React.FC<AuditActivityPanelProps> = ({ patientI
         action={<Badge variant="warning">Access Restricted</Badge>}
       >
         <div className="audit-restricted-notice">
-          <div className="restricted-icon">🔒</div>
+          <div className="restricted-icon">
+            <Lock size={22} />
+          </div>
           <h4 className="restricted-title">Audit Log Access Restricted for Healthcare Providers</h4>
           <p className="restricted-desc">
             Under HIPAA access control and MediSphere authorization rules, compliance audit logs are
@@ -303,7 +306,7 @@ export const AuditActivityPanel: React.FC<AuditActivityPanelProps> = ({ patientI
         <LoadingState message="Loading compliance audit records from MongoDB repository..." compact />
       ) : filteredLogs.length === 0 ? (
         <EmptyState
-          icon="📜"
+          icon={<ScrollText size={24} strokeWidth={1.5} />}
           title={isFiltered ? 'No Matching Audit Records' : 'No Audit Records Found'}
           description={
             isFiltered
@@ -385,8 +388,8 @@ export const AuditActivityPanel: React.FC<AuditActivityPanelProps> = ({ patientI
                     </td>
                     <td>
                       {isDenied ? (
-                        <span className="text-warn" style={{ fontWeight: 600 }}>
-                          🔒 {log.details || 'Access Denied by Security Policy'}
+                        <span className="text-warn" style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Lock size={12} /> {log.details || 'Access Denied by Security Policy'}
                         </span>
                       ) : (
                         <span>{log.details || '—'}</span>

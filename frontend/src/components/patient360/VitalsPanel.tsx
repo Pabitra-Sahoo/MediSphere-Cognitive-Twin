@@ -234,7 +234,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
         <LoadingState message="Connecting to vitals telemetry stream..." compact />
       ) : !hasAnyLatestReading && history.length === 0 ? (
         <EmptyState
-          icon="💓"
+          icon={undefined}
           title="No Vital Signs Recorded"
           description="No telemetry readings or vital sign observations have been recorded for this patient yet."
         />
@@ -277,7 +277,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
           {/* Data Quality Notice if validation issues exist */}
           {validationErrors.length > 0 && (
             <div className="vitals-quality-notice">
-              <span className="notice-icon">⚠️</span>
+              <span className="notice-icon" aria-hidden="true">&#9888;</span>
               <div className="notice-content">
                 <strong>Data Quality Boundary Flags:</strong>
                 <ul>
@@ -291,7 +291,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
 
           {validationWarnings.length > 0 && (
             <div className="vitals-warning-notice">
-              <span className="notice-icon">ℹ️</span>
+              <span className="notice-icon" aria-hidden="true">&#9432;</span>
               <div className="notice-content">
                 <strong>Data Quality Advisory:</strong>
                 <ul>
@@ -303,74 +303,101 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
             </div>
           )}
 
-          {/* Primary 5 Vital Metrics Cards */}
-          <div className="vitals-metrics-grid">
-            {/* Heart Rate */}
-            <div className="vital-card">
-              <div className="vital-card-header">
+          {/* On Vitals page: Clean concise observation summary strip without 5 giant cards */}
+          {showHistory ? (
+            <div className="vitals-summary-strip">
+              <div className="summary-metric-item">
+                <span className="metric-label">Heart Rate</span>
+                <div className="metric-value-line">
+                  <span className="metric-num">{hr !== undefined ? hr : '—'}</span>
+                  {hr !== undefined && <span className="metric-unit">bpm</span>}
+                </div>
+              </div>
+              <div className="summary-metric-divider" />
+              <div className="summary-metric-item">
+                <span className="metric-label">Blood Pressure</span>
+                <div className="metric-value-line">
+                  <span className="metric-num">
+                    {sbp !== undefined && dbp !== undefined
+                      ? `${sbp}/${dbp}`
+                      : sbp !== undefined
+                      ? `${sbp}/—`
+                      : '—'}
+                  </span>
+                  {sbp !== undefined && <span className="metric-unit">mmHg</span>}
+                </div>
+              </div>
+              <div className="summary-metric-divider" />
+              <div className="summary-metric-item">
+                <span className="metric-label">SpO2</span>
+                <div className="metric-value-line">
+                  <span className="metric-num">{spo2 !== undefined ? spo2 : '—'}</span>
+                  {spo2 !== undefined && <span className="metric-unit">%</span>}
+                </div>
+              </div>
+              <div className="summary-metric-divider" />
+              <div className="summary-metric-item">
+                <span className="metric-label">Temperature</span>
+                <div className="metric-value-line">
+                  <span className="metric-num">{temp !== undefined ? temp : '—'}</span>
+                  {temp !== undefined && <span className="metric-unit">°C</span>}
+                </div>
+              </div>
+              <div className="summary-metric-divider" />
+              <div className="summary-metric-item">
+                <span className="metric-label">Respiratory</span>
+                <div className="metric-value-line">
+                  <span className="metric-num">{rr !== undefined ? rr : '—'}</span>
+                  {rr !== undefined && <span className="metric-unit">/min</span>}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* On Overview / compact widget */
+            <div className="vitals-metrics-grid">
+              <div className="vital-card">
                 <span className="vital-name">Heart Rate</span>
-                <span className="vital-icon">💓</span>
+                <div className="vital-value-row">
+                  <span className="vital-value">{hr !== undefined ? hr : '—'}</span>
+                  {hr !== undefined && <span className="vital-unit">bpm</span>}
+                </div>
               </div>
-              <div className="vital-value-row">
-                <span className="vital-value">{hr !== undefined ? hr : 'Not available'}</span>
-                {hr !== undefined && <span className="vital-unit">bpm</span>}
-              </div>
-            </div>
-
-            {/* Blood Pressure */}
-            <div className="vital-card">
-              <div className="vital-card-header">
+              <div className="vital-card">
                 <span className="vital-name">Blood Pressure</span>
-                <span className="vital-icon">🩸</span>
+                <div className="vital-value-row">
+                  <span className="vital-value">
+                    {sbp !== undefined && dbp !== undefined
+                      ? `${sbp}/${dbp}`
+                      : sbp !== undefined
+                      ? `${sbp}/—`
+                      : '—'}
+                  </span>
+                  {sbp !== undefined && <span className="vital-unit">mmHg</span>}
+                </div>
               </div>
-              <div className="vital-value-row">
-                <span className="vital-value">
-                  {sbp !== undefined && dbp !== undefined
-                    ? `${sbp}/${dbp}`
-                    : sbp !== undefined
-                    ? `${sbp}/—`
-                    : 'Not available'}
-                </span>
-                {sbp !== undefined && <span className="vital-unit">mmHg</span>}
+              <div className="vital-card">
+                <span className="vital-name">Oxygen (SpO2)</span>
+                <div className="vital-value-row">
+                  <span className="vital-value">{spo2 !== undefined ? spo2 : '—'}</span>
+                  {spo2 !== undefined && <span className="vital-unit">%</span>}
+                </div>
               </div>
-            </div>
-
-            {/* Oxygen Saturation */}
-            <div className="vital-card">
-              <div className="vital-card-header">
-                <span className="vital-name">Oxygen Saturation</span>
-                <span className="vital-icon">🫁</span>
-              </div>
-              <div className="vital-value-row">
-                <span className="vital-value">{spo2 !== undefined ? spo2 : 'Not available'}</span>
-                {spo2 !== undefined && <span className="vital-unit">%</span>}
-              </div>
-            </div>
-
-            {/* Body Temperature */}
-            <div className="vital-card">
-              <div className="vital-card-header">
+              <div className="vital-card">
                 <span className="vital-name">Temperature</span>
-                <span className="vital-icon">🌡️</span>
+                <div className="vital-value-row">
+                  <span className="vital-value">{temp !== undefined ? temp : '—'}</span>
+                  {temp !== undefined && <span className="vital-unit">°C</span>}
+                </div>
               </div>
-              <div className="vital-value-row">
-                <span className="vital-value">{temp !== undefined ? temp : 'Not available'}</span>
-                {temp !== undefined && <span className="vital-unit">°C</span>}
-              </div>
-            </div>
-
-            {/* Respiratory Rate */}
-            <div className="vital-card">
-              <div className="vital-card-header">
-                <span className="vital-name">Respiratory Rate</span>
-                <span className="vital-icon">🌬️</span>
-              </div>
-              <div className="vital-value-row">
-                <span className="vital-value">{rr !== undefined ? rr : 'Not available'}</span>
-                {rr !== undefined && <span className="vital-unit">/min</span>}
+              <div className="vital-card">
+                <span className="vital-name">Respiratory</span>
+                <div className="vital-value-row">
+                  <span className="vital-value">{rr !== undefined ? rr : '—'}</span>
+                  {rr !== undefined && <span className="vital-unit">/min</span>}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </>
       )}
 
@@ -412,7 +439,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
               className={`metric-tab-btn ${selectedMetric === 'hr' ? 'active' : ''}`}
               onClick={() => setSelectedMetric('hr')}
             >
-              💓 Heart Rate ({hrData.length})
+              Heart Rate ({hrData.length})
             </button>
             <button
               type="button"
@@ -421,7 +448,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
               className={`metric-tab-btn ${selectedMetric === 'bp' ? 'active' : ''}`}
               onClick={() => setSelectedMetric('bp')}
             >
-              🩸 Blood Pressure ({bpData.length})
+              Blood Pressure ({bpData.length})
             </button>
             <button
               type="button"
@@ -430,7 +457,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
               className={`metric-tab-btn ${selectedMetric === 'spo2' ? 'active' : ''}`}
               onClick={() => setSelectedMetric('spo2')}
             >
-              🫁 SpO2 ({spo2Data.length})
+              SpO2 ({spo2Data.length})
             </button>
             <button
               type="button"
@@ -439,7 +466,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
               className={`metric-tab-btn ${selectedMetric === 'temp' ? 'active' : ''}`}
               onClick={() => setSelectedMetric('temp')}
             >
-              🌡️ Temperature ({tempData.length})
+              Temperature ({tempData.length})
             </button>
             <button
               type="button"
@@ -448,7 +475,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
               className={`metric-tab-btn ${selectedMetric === 'rr' ? 'active' : ''}`}
               onClick={() => setSelectedMetric('rr')}
             >
-              🌬️ Resp. Rate ({rrData.length})
+              Resp. Rate ({rrData.length})
             </button>
           </div>
 
@@ -600,7 +627,7 @@ export const VitalsPanel: React.FC<VitalsPanelProps> = ({
               <LoadingState message="Loading historical readings..." compact />
             ) : history.length === 0 ? (
               <EmptyState
-                icon="💓"
+                icon={undefined}
                 title="No Historical Vitals Found"
                 description="No historical telemetry packets have been recorded for this patient."
               />

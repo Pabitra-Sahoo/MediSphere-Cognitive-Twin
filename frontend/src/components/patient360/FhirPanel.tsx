@@ -3,6 +3,7 @@ import type { TwinFhirSyncStatus } from '../../types/twin';
 import type { FhirResourceSummary, FhirIngestionResult, FhirResourceDetail } from '../../types/fhir';
 import { fhirApi } from '../../api/fhirApi';
 import { useAuth } from '../../auth/useAuth';
+import { Database } from 'lucide-react';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
 import { LoadingState } from '../common/LoadingState';
@@ -272,7 +273,7 @@ export const FhirPanel: React.FC<FhirPanelProps> = ({
           <LoadingState message="Fetching FHIR resources from MongoDB repository..." compact />
         ) : resources.length === 0 ? (
           <EmptyState
-            icon="🔥"
+            icon={<Database size={24} strokeWidth={1.5} />}
             title="No Synced FHIR Resources Found"
             description="No discrete FHIR R4 resources have been ingested or mapped for this patient record."
           />
@@ -335,7 +336,9 @@ export const FhirPanel: React.FC<FhirPanelProps> = ({
           <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="fhir-inspect-title" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title-group">
-                <span className="modal-icon" aria-hidden="true">🔥</span>
+                <span className="modal-icon" aria-hidden="true">
+                  <Database size={16} />
+                </span>
                 <h3 id="fhir-inspect-title" className="modal-title">FHIR R4 Resource: <code>{inspectingId}</code></h3>
               </div>
               <button

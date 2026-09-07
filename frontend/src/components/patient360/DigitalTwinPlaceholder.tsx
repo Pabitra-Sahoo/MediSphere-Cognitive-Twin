@@ -2,6 +2,7 @@ import React from 'react';
 import type { TwinVitals, TwinLabs } from '../../types/twin';
 import { Card } from '../common/Card';
 import { Badge } from '../common/Badge';
+import { Activity, Wind, FlaskConical, Thermometer } from 'lucide-react';
 
 export interface DigitalTwinPlaceholderProps {
   patientName?: string;
@@ -66,7 +67,7 @@ export const DigitalTwinPlaceholder: React.FC<DigitalTwinPlaceholderProps> = ({
         {/* Real Physiological Twin Layer Indicators */}
         <div className="twin-layer-indicators">
           <div className="layer-chip">
-            <span className="chip-icon">🫀</span>
+            <span className="chip-icon"><Activity size={13} strokeWidth={2} /></span>
             <span className="chip-title">Cardiovascular</span>
             <span className="chip-data">
               {vitals?.heartRate ? `${vitals.heartRate} bpm` : 'No reading'}
@@ -74,7 +75,7 @@ export const DigitalTwinPlaceholder: React.FC<DigitalTwinPlaceholderProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🫁</span>
+            <span className="chip-icon"><Wind size={13} strokeWidth={2} /></span>
             <span className="chip-title">Respiratory</span>
             <span className="chip-data">
               {vitals?.oxygenSaturation ? `${vitals.oxygenSaturation}% SpO2` : 'No reading'}
@@ -82,7 +83,7 @@ export const DigitalTwinPlaceholder: React.FC<DigitalTwinPlaceholderProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🩸</span>
+            <span className="chip-icon"><FlaskConical size={13} strokeWidth={2} /></span>
             <span className="chip-title">Metabolic / Renal</span>
             <span className="chip-data">
               {labs?.glucose ? `${labs.glucose} mg/dL Glu` : 'No reading'}
@@ -90,7 +91,7 @@ export const DigitalTwinPlaceholder: React.FC<DigitalTwinPlaceholderProps> = ({
           </div>
 
           <div className="layer-chip">
-            <span className="chip-icon">🌡️</span>
+            <span className="chip-icon"><Thermometer size={13} strokeWidth={2} /></span>
             <span className="chip-title">Thermal</span>
             <span className="chip-data">
               {vitals?.temperature ? `${vitals.temperature} °C` : 'No reading'}
