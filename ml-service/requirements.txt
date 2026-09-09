@@ -1,0 +1,15 @@
+# MediSphere Cognitive Twin — Python ML Service
+# Production Dependencies for Phase 10 Foundation
+
+# Web Framework & API Server
+fastapi>=0.111.0,<0.116.0
+uvicorn[standard]>=0.30.0,<0.35.0
+pydantic>=2.7.0,<3.0.0
+
+# Scientific & Data Processing Stack
+numpy>=1.26.0,<2.2.0
+pandas>=2.2.0,<2.3.0
+scikit-learn>=1.4.0,<1.7.0
+
+# HTTP client & utilities
+requests>=2.31.0,<3.0.0

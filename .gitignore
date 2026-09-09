@@ -31,6 +31,16 @@ node_modules/
 # ---- Docker ----
 docker-data/
 
+# ---- Python / ML Service ----
+ml-service/.venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
 # ---- OS ----
 .DS_Store
 Thumbs.db

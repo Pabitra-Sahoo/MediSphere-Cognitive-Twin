@@ -58,6 +58,26 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # ---- Python ML Service (Phase 10 Foundation) ----
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: medisphere-ml-service
+    ports:
+      - "${ML_SERVICE_PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - RANDOM_SEED=42
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
 volumes:
   mongodb_data:
     driver: local

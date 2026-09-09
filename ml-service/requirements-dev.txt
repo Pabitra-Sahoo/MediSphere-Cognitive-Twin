@@ -1,0 +1,6 @@
+# Development & Testing Dependencies for Phase 10
+-r requirements.txt
+
+pytest>=8.0.0,<9.0.0
+pytest-asyncio>=0.23.0,<0.25.0
+httpx>=0.27.0,<0.29.0
