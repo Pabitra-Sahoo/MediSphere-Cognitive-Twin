@@ -40,6 +40,8 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+ml-service/data/raw/
+ml-service/data/processed/
 
 # ---- OS ----
 .DS_Store

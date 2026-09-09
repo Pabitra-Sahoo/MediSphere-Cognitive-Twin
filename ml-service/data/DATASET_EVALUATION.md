@@ -1,103 +1,113 @@
-# MediSphere ML Service — Clinical Dataset Evaluation & Selection
+# MediSphere ML Service — Clinical Dataset Provenance, Evaluation & Contracts
 
-## 1. Executive Summary & Purpose
+## 1. Executive Summary & Provenance Statement
 
-Milestone 2 requires training two clinical risk prediction models:
-1. **Cardiovascular Risk Prediction Model**
-2. **Diabetes Complications Prediction Model**
-
-In accordance with project safety guidelines and user requirements:
-- No candidate public dataset is accepted without formal comparative evaluation.
-- General diabetes diagnosis datasets (e.g., Pima Indians Diabetes Dataset) are **strictly rejected** for the complications task because diagnosis of diabetes does not equal diabetic complication (e.g. nephropathy, retinopathy, or vascular damage).
-- Both selected datasets must map cleanly to the 11 clinical features available in MediSphere's `HealthTwin` schema.
+In accordance with strict clinical AI governance and project data-integrity rules:
+- **Zero synthetic rows** are utilized for production machine learning model training or baseline evaluation.
+- **Zero synthetic target labels** are generated mathematically.
+- **Zero clinical measurements** (`oxygenSaturation`, `creatinine`, `hemoglobin`, blood pressure, etc.) are fabricated to artificially pad feature vectors.
+- Models consume **source-native clinical features** via explicit model-specific contracts.
+- The previously committed synthetic reference files (`cardiovascular_reference.csv` and `diabetes_complications_reference.csv`) have been **relocated to `ml-service/data/fixtures/synthetic_pipeline_test_data/`** and are strictly designated as synthetic unit-test fixtures. They are excluded from the model training path.
 
 ---
 
-## 2. Evaluation Matrix for Candidate Datasets
+## 2. Authentic Benchmark Specifications
 
-### Task 1: Cardiovascular Risk Prediction
-
-| Evaluation Criteria | Candidate A: UCI Heart Disease Consortium (Selected) | Candidate B: Framingham Heart Study | Candidate C: Kaggle Cardiovascular Disease Dataset |
-| :--- | :--- | :--- | :--- |
-| **Source & Provenance** | UC Irvine ML Repository (Cleveland Clinic, Hungarian Institute of Cardiology, Long Beach VA Medical Center, University Hospital Zurich) | National Heart, Lung, and Blood Institute (NHLBI) longitudinal cohort | Sulman Sarwar / Kaggle anonymized clinical examination records |
-| **License & Ethics** | Creative Commons Attribution 4.0 (CC-BY 4.0) — Open research use | Restricted / IRB-controlled access; non-open distribution | Open Database License (ODbL) |
-| **Sample Size** | 920 records (combined 4 sites), 303 (Cleveland benchmark), 400 (curated reference extraction) | 4,238 records | 70,000 records |
-| **Feature Overlap with HealthTwin** | **High:** `age`, `sex`, resting BP (`trestbps`), cholesterol (`chol`), max heart rate (`thalach`), fasting glucose (`fbs`), BMI/ECG | **High:** `age`, `male`, systolic BP, diastolic BP, cholesterol, BMI, glucose, HR | **Moderate:** `age`, `gender`, `height`, `weight`, `ap_hi`, `ap_lo`, `cholesterol`, `gluc` (categorical 1/2/3 only) |
-| **Target-Label Quality** | `num` (0: absence of CAD, 1–4: presence of angiographic CAD with $\ge 50\%$ narrowing). Direct clinical endpoint. | `TenYearCHD` (10-year coronary heart disease incidence). Long-term endpoint. | `cardio` (binary presence of cardiovascular disease). Self-reported / exam binary. |
-| **Missingness & Noise** | Documented: Cleveland has 6 missing values; Hungarian & VA have documented missing entries appropriately imputable via median. | ~15% missingness across laboratory covariates. | Minimal missingness, but systolic/diastolic blood pressure contains severe recording artifacts (e.g. negative or >10,000 mmHg). |
-| **Federated Suitability** | **Exceptional:** Naturally partitioned across 4 distinct international hospitals (Cleveland Clinic, Hungarian Institute of Cardiology, Long Beach VA, University Hospital Zurich). | Single geographic site (Framingham, MA); artificial partitioning required. | Single hospital system; artificial partitioning required. |
-| **Verdict** | **SELECTED.** Standard clinical benchmark, CC-BY 4.0 license, natural multi-hospital silos, exact feature match to HealthTwin. | Rejected due to proprietary distribution and licensing constraints. | Rejected due to categorical lab quantizations (1/2/3) and extreme outlier noise. |
-
----
-
-### Task 2: Diabetes Complications Prediction
-
-| Evaluation Criteria | Candidate A: Diabetes 130-US Hospitals Cohort (Selected) | Candidate B: Pima Indians Diabetes Dataset (REJECTED) | Candidate C: CDC Diabetes Health Indicators BRFSS |
-| :--- | :--- | :--- | :--- |
-| **Source & Provenance** | Strack et al. / UCI ML Repository (1999–2008 clinical encounter registry across 130 US medical centers) | National Institute of Diabetes and Digestive and Kidney Diseases (NIDDK) | CDC Behavioral Risk Factor Surveillance System (BRFSS 2015) |
-| **License & Ethics** | Creative Commons Attribution 4.0 (CC-BY 4.0) — Public clinical research | Public Domain / CC0 | Public Domain (US Government Work) |
-| **Sample Size** | 101,766 inpatient encounters across 130 hospitals, 500 (curated reference extraction) | 768 female patient records | 253,680 survey responses |
-| **Feature Overlap with HealthTwin** | **High:** Age brackets, gender, admission vitals, lab counts, glucose level indicators, creatinine/renal diagnostics, inpatient medications | **Moderate:** Glucose, BP, skin thickness, insulin, BMI, pedigree, age (all female cohort) | **Poor for clinical twins:** Self-reported telephone survey questions (e.g. "General health rating 1-5", "Eat fruit daily") |
-| **Target-Label Validity** | **VALID FOR COMPLICATIONS:** Encoded secondary ICD-9 diagnoses specifically capture clinical microvascular & macrovascular complications: <br>• **Diabetic Nephropathy:** ICD-9 250.4x, 585.x <br>• **Diabetic Retinopathy:** ICD-9 250.5x, 362.0x <br>• **Diabetic Neuropathy:** ICD-9 250.6x, 357.2 <br>• **Peripheral Vascular Disease:** ICD-9 250.7x | **INVALID FOR COMPLICATIONS:** `Outcome` represents only **diabetes diagnosis** ($0 = \text{No Diabetes}, 1 = \text{Has Diabetes}$). **It does not record whether a diabetic patient developed complications.** | **INVALID FOR COMPLICATIONS:** Predicts general diabetes diagnosis (`Diabetes_binary` or `Diabetes_012`), not diabetic organ complications. |
-| **Verdict** | **SELECTED.** Genuinely captures clinical organ complications in diabetic patients; multi-center provenance enables federated partitioning. | **STRICTLY REJECTED.** Relabeling diabetes diagnosis as "diabetes complications" violates medical validity and project guidelines. | **STRICTLY REJECTED.** Telephonic survey questions lack objective laboratory measurements and clinical complication endpoints. |
+### 2.1 Task 1: Cardiovascular Risk Prediction Model
+* **Benchmark Cohort:** Framingham Heart Study Teaching / Public Research Cohort
+* **Provenance & Source:** Publicly accessible teaching/research dataset source curated from the National Heart, Lung, and Blood Institute (NHLBI) longitudinal study; source and attribution documented via Duke University Department of Statistical Science ([`matackett/sta210/framingham.csv`](https://raw.githubusercontent.com/matackett/sta210/master/data/framingham.csv)).
+* **Licensing & Usage Terms:** Publicly accessible teaching and research dataset source. Dedicated to open academic statistical research and education. Raw data files are kept local in `data/raw/` and excluded from Git commits.
+* **Citation & Attribution:**
+  > Framingham Heart Study, National Heart, Lung, and Blood Institute (NHLBI) and Boston University. Teaching dataset extraction distributed for academic biostatistical and machine learning instruction.
+* **Exact Record Count:** **4,240 authentic patient records**
+* **Target Label Definition:**
+  * Column: `TenYearCHD`
+  * Clinical Meaning: 10-year prospective incidence of coronary heart disease (myocardial infarction, angina pectoris, or coronary insufficiency).
+  * Empirical Ground Truth:
+    * Negative (`TenYearCHD = 0`): **3,596 patients** (84.81%)
+    * Positive (`TenYearCHD = 1`): **644 patients** (15.19%)
+* **Feature Scope:** Consumes exactly 8 native features. The 3 HealthTwin features not collected in this historical protocol (`oxygenSaturation`, `creatinine`, `hemoglobin`) are marked `UNAVAILABLE` and are **strictly excluded from the model sub-vector**.
 
 ---
 
-## 3. Final Dataset Specifications & Statistical Properties
-
-### 1. Selected Cardiovascular Dataset
-* **Name:** UCI Heart Disease Benchmark (Cleveland + Multicenter Cohort)
-* **Exact Provenance:** UC Irvine Machine Learning Repository (Donated 1988 by Robert Detrano, M.D., Ph.D.)
-* **License:** Creative Commons Attribution 4.0 International (CC-BY 4.0)
-* **Total Sample Count:** 400 curated benchmark samples in reference extraction (`cardiovascular_reference.csv`)
-* **Target Label Definition:** Binary classification where `target = 1` indicates model-estimated presence/high risk of significant coronary artery disease ($\ge 50\%$ diameter narrowing across coronary angiograms); `target = 0` indicates absence of significant disease ($<50\%$ stenosis).
-* **Positive-Class Statistics:**
-  * Positive samples: 199 (49.75%)
-  * Negative samples: 201 (50.25%)
-  * Target distribution is well-balanced across positive and negative classes.
-
-### 2. Selected Diabetes Complications Dataset
-* **Name:** UCI Diabetes 130-US Hospitals Secondary Complication Cohort
-* **Exact Provenance:** UC Irvine Machine Learning Repository (Strack et al., 1999–2008 clinical inpatient encounter registry)
-* **License:** Creative Commons Attribution 4.0 International (CC-BY 4.0)
-* **Total Sample Count:** 500 curated benchmark samples in reference extraction (`diabetes_complications_reference.csv`)
-* **Target Label Definition:** Binary classification `has_complication`:
-  * `1`: Patient encounter with confirmed secondary diabetic organ complications (ICD-9 codes: diabetic nephropathy 250.4x/585.x, diabetic retinopathy 250.5x/362.0x, diabetic neuropathy 250.6x/357.2, or peripheral vascular disease 250.7x).
-  * `0`: Diabetic patient encounter without documented secondary organ complications.
-* **Positive-Class Statistics:**
-  * Positive samples: 247 (49.40%)
-  * Negative samples: 253 (50.60%)
-  * Target distribution is well-balanced across complicated and uncomplicated cases.
+### 2.2 Task 2: Diabetes Complications Prediction Model
+* **Benchmark Cohort:** UCI Diabetes 130-US Hospitals (1999–2008) Inpatient Encounters
+* **Provenance & Source:** Official UC Irvine Machine Learning Repository (Dataset ID: 296, donated by Strack et al., 2014; [`archive.ics.uci.edu`](https://archive.ics.uci.edu/static/public/296/diabetes+130-us+hospitals+for+years+1999-2008.zip)).
+* **Licensing & Usage Terms:** Creative Commons Attribution 4.0 International (CC BY 4.0). Permitted for open research, evaluation, and educational use with appropriate attribution. Raw data files are kept local in `data/raw/` and excluded from Git commits.
+* **Citation & Attribution:**
+  > Beata Strack, Jonathan P. DeShazo, Chris Gennings, Juan L. Olmo, Sebastian Ventura, Krzysztof J. Cios, and John N. Clore, "Impact of HbA1c Measurement on Hospital Readmission Rates: Analysis of 70,000 Clinical Database Patient Records," BioMed Research International, vol. 2014, Article ID 781670, 2014.
+* **Exact Record Count:** **101,766 authentic clinical inpatient encounter records** across 130 US medical centers.
+* **Target Label Definition & Extraction:**
+  * Column: `has_complication`
+  * Clinical Meaning: Diagnosis of secondary diabetic microvascular or macrovascular organ complications documented in hospital discharge billing records (`diag_1`, `diag_2`, `diag_3`).
+  * Extraction Rule:
+    * **Diabetic Nephropathy:** ICD-9 `250.4x` (diabetes with renal manifestations), `585.x` (chronic kidney disease).
+    * **Diabetic Retinopathy:** ICD-9 `250.5x` (diabetes with ophthalmic manifestations), `362.0x` (diabetic retinopathy).
+    * **Diabetic Neuropathy:** ICD-9 `250.6x` (diabetes with neurological manifestations), `357.2` (diabetic polyneuropathy).
+    * **Diabetic Peripheral Vascular Disease:** ICD-9 `250.7x` (diabetes with peripheral circulatory disorders), `443.81`/`443.9` (peripheral angiopathy).
+  * Empirical Ground Truth:
+    * Negative (`has_complication = 0`): **91,521 encounters** (89.93%)
+    * Positive (`has_complication = 1`): **10,245 encounters** (10.07%)
+* **Feature Scope:** Consumes 11 authentic encounter features. Vital signs (continuous blood pressure, continuous heart rate, SpO2) and continuous blood chemistries are unavailable in hospital encounter billing records and are **strictly not fabricated**.
 
 ---
 
-## 4. Complete Feature Mapping & Imputation Transparency
+## 3. Comprehensive Feature Mapping & Transparency Audit
 
-To maintain scientific integrity, the table below documents the exact correspondence between MediSphere's canonical 11 `HealthTwin` features and the attributes available in the historical benchmark cohorts:
+The table below documents every feature across both authentic benchmarks against the MediSphere HealthTwin schema:
 
-| HealthTwin Feature | Present in Raw UCI Heart Disease? | Present in Raw Diabetes 130-US? | Exact Mapping & Handling Strategy in Phase 10 |
-| :--- | :--- | :--- | :--- |
-| **`age`** | **YES** | **YES** (Deciles) | In Heart Disease: Direct chronological age. In Diabetes 130: Decile brackets mapped to continuous midpoints (e.g., `[50-60)` $\rightarrow 55$). |
-| **`gender`** | **YES** | **YES** | In Heart Disease: `sex` ($1 = \text{Male}, 0 = \text{Female}$). In Diabetes 130: `gender` encoded ($1 = \text{Male}, 0 = \text{Female}$). |
-| **`bmi`** | **PARTIAL** | **PARTIAL** | In historical cohorts where BMI was optional/unrecorded, mapped to clinical cohort median ($\mu=26.5$ for cardiac, $\mu=31.5$ for diabetic). Missing values imputed via training-split median. |
-| **`systolicBP`** | **YES** | **PARTIAL** | In Heart Disease: `trestbps` (resting systolic blood pressure in mmHg). In Diabetes 130: Inpatient admission blood pressure. |
-| **`diastolicBP`** | **PARTIAL** | **PARTIAL** | Historical 14-attribute UCI subset recorded systolic resting BP; diastolic BP is derived via clinical hemodynamic pulse pressure ratio ($0.65 \times \text{systolicBP} \pm \epsilon$) and constrained by `diastolicBP < systolicBP`. |
-| **`heartRate`** | **YES** | **PARTIAL** | In Heart Disease: `thalach` (maximum achieved heart rate). In Diabetes 130: Inpatient pulse recording or clinical resting baseline. |
-| **`oxygenSaturation`** | **NO** (Historical gap) | **NO** (Historical gap) | Continuous pulse oximetry was not part of 1980s 14-variable UCI subsets. Calibrated to normal physiological adult baseline ($97.5\% \pm 1.4\%$) to maintain strict interface compatibility with the 11-feature HealthTwin schema. |
-| **`glucose`** | **YES** | **YES** | In Heart Disease: `fbs` (fasting blood sugar $>120$ mg/dL) mapped to numerical glucose level. In Diabetes 130: `max_glu_serum` / laboratory test values. |
-| **`cholesterol`** | **YES** | **PARTIAL** | In Heart Disease: `chol` (serum cholesterol in mg/dL). In Diabetes 130: Inpatient lipid panel baseline distribution. |
-| **`creatinine`** | **PARTIAL** | **YES** | In Heart Disease: General metabolic panel baseline ($\mu=1.0$ mg/dL). In Diabetes 130: Core renal filtration marker, significantly elevated in patients with diabetic nephropathy ($\mu=1.7$ mg/dL). |
-| **`hemoglobin`** | **PARTIAL** | **YES** | In Heart Disease: Adult hematologic baseline ($\mu=14.5$ g/dL). In Diabetes 130: Glycated/total hemoglobin laboratory test panels. |
-
-### Imputation & Preprocessing Rules
-1. **No Data Fabrication:** In Phase 10, no synthetic measurements are fabricated out of thin air. Real clinical distributions and established correlation coefficients (Framingham risk equation and clinical nephropathy curves) govern all feature representations.
-2. **Deterministic Missing Value Imputation:** If any numeric feature in an input record is null or missing, `ClinicalPreprocessor` computes the median on the **training partition only** and applies it to impute the missing value.
-3. **Standard Scaling:** Features are standardized using population scaling ($z = \frac{x - \mu}{\sigma}$) with parameters fit strictly on the training partition.
+| Target Model | Source Dataset | Source Column | Model Feature | Classification | Transformation / Encoding | Missing-Value Handling |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Cardiovascular** | Framingham | `age` | `age` | **SOURCE-NATIVE** | Direct continuous years (32–70) | 0 missing |
+| **Cardiovascular** | Framingham | `male` | `gender` | **SOURCE-NATIVE** | Binary float (1.0 = Male, 0.0 = Female) | 0 missing |
+| **Cardiovascular** | Framingham | `BMI` | `bmi` | **SOURCE-NATIVE** | Continuous body mass index in $\text{kg/m}^2$ | 19 missing (0.45%); training-split median |
+| **Cardiovascular** | Framingham | `sysBP` | `systolicBP` | **SOURCE-NATIVE** | Continuous resting systolic BP in mmHg | 0 missing |
+| **Cardiovascular** | Framingham | `diaBP` | `diastolicBP` | **SOURCE-NATIVE** | Continuous resting diastolic BP in mmHg | 0 missing |
+| **Cardiovascular** | Framingham | `heartRate` | `heartRate` | **SOURCE-NATIVE** | Continuous resting heart rate in bpm | 1 missing (0.02%); training-split median |
+| **Cardiovascular** | Framingham | `glucose` | `glucose` | **SOURCE-NATIVE** | Continuous blood glucose in mg/dL | 388 missing (9.15%); training-split median |
+| **Cardiovascular** | Framingham | `totChol` | `cholesterol` | **SOURCE-NATIVE** | Continuous total serum cholesterol in mg/dL | 50 missing (1.18%); training-split median |
+| **Cardiovascular** | Framingham | *(None)* | `oxygenSaturation` | **UNAVAILABLE** | **Excluded from sub-vector** | Never fabricated; omitted from model contract |
+| **Cardiovascular** | Framingham | *(None)* | `creatinine` | **UNAVAILABLE** | **Excluded from sub-vector** | Never fabricated; omitted from model contract |
+| **Cardiovascular** | Framingham | *(None)* | `hemoglobin` | **UNAVAILABLE** | **Excluded from sub-vector** | Never fabricated; omitted from model contract |
+| **Cardiovascular Target** | Framingham | `TenYearCHD` | `TenYearCHD` | **SOURCE-NATIVE** | Binary empirical target (1 = CHD event in 10 yrs) | 0 missing (644 pos / 3596 neg) |
+| **Diabetes** | UCI 130-US | `age` | `age` | **DERIVED/ENCODED** | Decile midpoint (e.g. `[50-60)` $\rightarrow 55.0$) | Imputed to 55.0 if missing |
+| **Diabetes** | UCI 130-US | `gender` | `gender` | **SOURCE-NATIVE** | Binary float (1.0 = Male, 0.0 = Female) | 3 missing; training-split median |
+| **Diabetes** | UCI 130-US | `time_in_hospital` | `time_in_hospital` | **SOURCE-NATIVE** | Integer inpatient duration (1–14 days) | 0 missing |
+| **Diabetes** | UCI 130-US | `num_lab_procedures` | `num_lab_procedures` | **SOURCE-NATIVE** | Integer count of lab diagnostic tests (1–132) | 0 missing |
+| **Diabetes** | UCI 130-US | `num_procedures` | `num_procedures` | **SOURCE-NATIVE** | Integer count of interventional procedures (0–6) | 0 missing |
+| **Diabetes** | UCI 130-US | `num_medications` | `num_medications` | **SOURCE-NATIVE** | Integer count of administered medications (1–81) | 0 missing |
+| **Diabetes** | UCI 130-US | `number_diagnoses` | `number_diagnoses` | **SOURCE-NATIVE** | Integer count of recorded diagnoses (1–16) | 0 missing |
+| **Diabetes** | UCI 130-US | `max_glu_serum` | `max_glu_serum` | **DERIVED/ENCODED** | Ordinal: None=0.0, Norm=1.0, >200=2.0, >300=3.0 | Mapped to 0.0 (unmeasured) if null |
+| **Diabetes** | UCI 130-US | `A1Cresult` | `A1Cresult` | **DERIVED/ENCODED** | Ordinal: None=0.0, Norm=1.0, >7=2.0, >8=3.0 | Mapped to 0.0 (unmeasured) if null |
+| **Diabetes** | UCI 130-US | `insulin` | `insulin` | **DERIVED/ENCODED** | Ordinal: No=0.0, Steady=1.0, Up=2.0, Down=3.0 | Mapped to 0.0 if missing |
+| **Diabetes** | UCI 130-US | `diabetesMed` | `diabetesMed` | **DERIVED/ENCODED** | Binary: Yes=1.0, No=0.0 | Mapped to 0.0 if missing |
+| **Diabetes** | UCI 130-US | *(None)* | `systolicBP` | **UNAVAILABLE** | **Excluded from encounter contract** | Never fabricated; omitted from model contract |
+| **Diabetes** | UCI 130-US | *(None)* | `diastolicBP` | **UNAVAILABLE** | **Excluded from encounter contract** | Never fabricated; omitted from model contract |
+| **Diabetes** | UCI 130-US | *(None)* | `heartRate` | **UNAVAILABLE** | **Excluded from encounter contract** | Never fabricated; omitted from model contract |
+| **Diabetes** | UCI 130-US | *(None)* | `oxygenSaturation` | **UNAVAILABLE** | **Excluded from encounter contract** | Never fabricated; omitted from model contract |
+| **Diabetes Target** | UCI 130-US | `diag_1/2/3` | `has_complication` | **DERIVED/ENCODED** | Binary indicator of ICD-9 complication code | 0 missing (10,245 pos / 91,521 neg) |
 
 ---
 
-## 5. Known Dataset Limitations
+## 4. Synthetic Pipeline Test Fixtures
 
-1. **Historical Demographic Bias:** The UCI Heart Disease cohort reflects historical clinical demographics with a higher proportion of male participants ($68\%$). Model evaluation in Phase 11 will assess sensitivity across gender sub-populations.
-2. **Decile Discretization:** The Diabetes 130-Hospitals dataset groups ages into 10-year brackets (`[0-10)`, `[10-20)`, ... `[90-100)`). While mapping to midpoints provides continuous inputs, it introduces minor discretization variance.
-3. **Research-Only Constraint:** Both cohorts are strictly designated for academic research, education, and algorithmic demonstration within the MediSphere platform.
+* **Location:** `ml-service/data/fixtures/synthetic_pipeline_test_data/`
+* **Status:**
+  > **Synthetic test fixture only. Not derived from UCI or Framingham patient records.**
+  > **Do not use them for Phase 11 model training.**
+* **Files:**
+  * `cardiovascular_reference.csv` (400 synthetic rows)
+  * `diabetes_complications_reference.csv` (500 synthetic rows)
+  * `README.md` (explicit isolation disclaimer)
+* **Usage:** Strictly reserved for unit tests verifying schema validators, JSON endpoint serialization, and mock interfaces.
+
+---
+
+## 5. Raw Data Storage & Ingestion Pipeline
+
+* **Local Storage Directory:** `ml-service/data/raw/` (excluded from Git via root `.gitignore`).
+* **Ingestion Script:** `ml-service/data/download_datasets.py`
+  * Fetches authentic Framingham dataset (SHA-256: `2c0e57dc0361b420becf1facec0a054af06c420eae0ae2faf0fdc8591fadb018`).
+  * Fetches authentic UCI Diabetes 130-US Hospitals dataset (SHA-256: `0689e7ec031237dc63031b938805c48377748761a3b26acab621567afa24df97`).
+  * Verifies file headers and raises immediate errors on network or content corruption.
+  * Never replaces missing files with synthetic data.

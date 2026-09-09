@@ -5,7 +5,7 @@ import pandas as pd
 
 from data.partitioner import DataPartitioner
 from data.dataset_loader import DatasetLoader
-from config import CLIENT_IDS, CLIENT_SPLIT_RATIOS
+from config import CLIENT_IDS, CLIENT_SPLIT_RATIOS, CARDIOVASCULAR_TARGET, DIABETES_TARGET
 
 
 def test_train_val_test_ratios_and_stratification():
@@ -13,7 +13,7 @@ def test_train_val_test_ratios_and_stratification():
     df = DatasetLoader.load_cardiovascular_dataset()
     partitioner = DataPartitioner(random_seed=42)
 
-    train_df, val_df, test_df = partitioner.split_train_val_test(df, target_col="target")
+    train_df, val_df, test_df = partitioner.split_train_val_test(df, target_col=CARDIOVASCULAR_TARGET)
 
     total_len = len(df)
     assert len(train_df) + len(val_df) + len(test_df) == total_len
@@ -24,10 +24,10 @@ def test_train_val_test_ratios_and_stratification():
     assert abs(len(test_df) / total_len - 0.15) < 0.02
 
     # Verify stratified target proportions
-    global_pos_rate = df["target"].mean()
-    train_pos_rate = train_df["target"].mean()
-    val_pos_rate = val_df["target"].mean()
-    test_pos_rate = test_df["target"].mean()
+    global_pos_rate = df[CARDIOVASCULAR_TARGET].mean()
+    train_pos_rate = train_df[CARDIOVASCULAR_TARGET].mean()
+    val_pos_rate = val_df[CARDIOVASCULAR_TARGET].mean()
+    test_pos_rate = test_df[CARDIOVASCULAR_TARGET].mean()
 
     assert abs(train_pos_rate - global_pos_rate) < 0.05
     assert abs(val_pos_rate - global_pos_rate) < 0.05
@@ -39,7 +39,7 @@ def test_federated_client_partitioning_disjointness():
     df = DatasetLoader.load_cardiovascular_dataset()
     partitioner = DataPartitioner(random_seed=42)
 
-    train_df, val_df, test_df = partitioner.split_train_val_test(df, target_col="target")
+    train_df, val_df, test_df = partitioner.split_train_val_test(df, target_col=CARDIOVASCULAR_TARGET)
     clients = partitioner.partition_federated_clients(train_df)
 
     assert set(clients.keys()) == set(CLIENT_IDS)

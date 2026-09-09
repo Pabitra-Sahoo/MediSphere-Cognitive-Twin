@@ -44,13 +44,19 @@ Phase 10 delivers the decoupled Python service foundation for Milestone 2:
 Detailed comparative evaluations across candidate datasets are documented in [data/DATASET_EVALUATION.md](file:///c:/Users/sahoo/OneDrive/Desktop/MediSphere%20Cognitive%20Twin/ml-service/data/DATASET_EVALUATION.md).
 
 * **Cardiovascular Risk Task:**
-  * Selected: **UCI Heart Disease Multicenter Benchmark** (Cleveland + Hungary + VA Long Beach).
-  * Target: `target = 1` indicates model-estimated presence of coronary artery disease ($\ge 50\%$ vessel stenosis); `0` indicates absence of significant disease.
-  * Natural multi-center hospital partitions fit federated learning perfectly.
+  * Selected: **Framingham Heart Study Teaching / Public Benchmark Dataset** (4,240 authentic records).
+  * Target: `TenYearCHD = 1` indicates 10-year prospective incidence of coronary heart disease (644 positive events, 15.19% prevalence).
+  * Model feature contract: 8 source-native continuous features (`age`, `gender`, `bmi`, `systolicBP`, `diastolicBP`, `heartRate`, `glucose`, `cholesterol`). Unavailable HealthTwin features (`oxygenSaturation`, `creatinine`, `hemoglobin`) are excluded from the model sub-vector and never fabricated.
 * **Diabetes Complications Task:**
-  * Selected: **UCI Diabetes 130-US Hospitals Secondary Complication Cohort**.
-  * Target: `has_complication = 1` indicates documented secondary ICD-9 organ complications (diabetic nephropathy, retinopathy, neuropathy, or vascular damage).
-  * *Negative Selection Note:* The Pima Indians Diabetes Dataset was **strictly rejected** because predicting diabetes onset does not equate to predicting diabetic organ complications.
+  * Selected: **UCI Diabetes 130-US Hospitals (1999–2008)** (101,766 authentic inpatient clinical encounters).
+  * Target: `has_complication = 1` extracted from discharge ICD-9 diagnoses matching secondary diabetic microvascular/macrovascular damage (nephropathy, retinopathy, neuropathy, peripheral vascular disease; 10,245 positive encounters, 10.07% prevalence).
+  * Model feature contract: 11 encounter features (`age`, `gender`, `time_in_hospital`, `num_lab_procedures`, `num_procedures`, `num_medications`, `number_diagnoses`, `max_glu_serum`, `A1Cresult`, `insulin`, `diabetesMed`).
+* **Raw Data Download:**
+  ```bash
+  python data/download_datasets.py
+  ```
+  Downloads raw authentic files into `data/raw/` (ignored by Git).
+
 
 ---
 

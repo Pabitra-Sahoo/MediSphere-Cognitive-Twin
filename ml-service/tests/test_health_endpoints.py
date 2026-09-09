@@ -50,11 +50,15 @@ def test_datasets_info_endpoint(client):
     assert "diabetesComplicationsDataset" in data
 
     cardio = data["cardiovascularDataset"]
-    assert cardio["totalSamples"] > 0
-    assert cardio["featureCount"] == 11
-    assert cardio["targetColumn"] == "target"
+    assert cardio["totalSamples"] == 4240
+    assert cardio["featureCount"] == 8
+    assert cardio["targetColumn"] == "TenYearCHD"
+    assert "systolicBP" in cardio["features"]
+    assert "glucose" in cardio["features"]
 
     diabetes = data["diabetesComplicationsDataset"]
-    assert diabetes["totalSamples"] > 0
+    assert diabetes["totalSamples"] == 101766
     assert diabetes["featureCount"] == 11
     assert diabetes["targetColumn"] == "has_complication"
+    assert "time_in_hospital" in diabetes["features"]
+    assert "insulin" in diabetes["features"]

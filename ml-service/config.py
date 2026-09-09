@@ -10,7 +10,10 @@ from pathlib import Path
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
-REFERENCE_DATA_DIR = DATA_DIR / "reference"
+RAW_DATA_DIR = DATA_DIR / "raw"
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
+FIXTURES_DIR = DATA_DIR / "fixtures"
+SYNTHETIC_FIXTURES_DIR = FIXTURES_DIR / "synthetic_pipeline_test_data"
 MODELS_DIR = BASE_DIR / "models"
 REGISTRY_DIR = BASE_DIR / "registry"
 
@@ -36,6 +39,35 @@ FEATURE_NAMES = [
     "creatinine",
     "hemoglobin",
 ]
+
+# Model 1: Cardiovascular Risk (Framingham authentic 8-feature native contract)
+CARDIOVASCULAR_FEATURES = [
+    "age",
+    "gender",
+    "bmi",
+    "systolicBP",
+    "diastolicBP",
+    "heartRate",
+    "glucose",
+    "cholesterol",
+]
+CARDIOVASCULAR_TARGET = "TenYearCHD"
+
+# Model 2: Diabetes Complications (UCI Diabetes 130-US Hospitals authentic 11-feature encounter contract)
+DIABETES_FEATURES = [
+    "age",
+    "gender",
+    "time_in_hospital",
+    "num_lab_procedures",
+    "num_procedures",
+    "num_medications",
+    "number_diagnoses",
+    "max_glu_serum",
+    "A1Cresult",
+    "insulin",
+    "diabetesMed",
+]
+DIABETES_TARGET = "has_complication"
 
 # Partitioning ratios
 TRAIN_RATIO = 0.70

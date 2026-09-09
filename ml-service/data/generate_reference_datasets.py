@@ -1,11 +1,12 @@
-"""Deterministic Generator for MediSphere Clinical Reference Datasets
+"""Deterministic Generator for MediSphere Synthetic Pipeline Test Fixtures
 
-Generates standardized reference cohorts based on the published clinical distributions of:
-1. UCI Heart Disease Benchmark (Cleveland + Multicenter Cohort) -> cardiovascular_reference.csv
-2. UCI Diabetes 130-US Hospitals (Secondary Complications Cohort) -> diabetes_complications_reference.csv
+WARNING:
+Synthetic test fixture only. Not derived from UCI or Framingham patient records.
+Do not use for clinical ML model training or baseline evaluation.
 
+Generates small, reproducible synthetic datasets used exclusively for fast unit testing
+of schema serialization and pipeline mock endpoints.
 All samples are generated deterministically using RANDOM_SEED = 42.
-Contains strictly de-identified numerical features (no patient names, MRNs, or PII).
 """
 
 import os
@@ -13,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from config import RANDOM_SEED, REFERENCE_DATA_DIR, FEATURE_NAMES
+from config import RANDOM_SEED, SYNTHETIC_FIXTURES_DIR, FEATURE_NAMES
 
 
 def generate_cardiovascular_dataset(n_samples: int = 400) -> pd.DataFrame:
@@ -133,11 +134,11 @@ def generate_diabetes_complications_dataset(n_samples: int = 500) -> pd.DataFram
     return df
 
 
-def ensure_reference_datasets():
-    """Ensures reference datasets exist on disk; generates them deterministically if missing."""
-    REFERENCE_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    cardio_path = REFERENCE_DATA_DIR / "cardiovascular_reference.csv"
-    diabetes_path = REFERENCE_DATA_DIR / "diabetes_complications_reference.csv"
+def ensure_synthetic_fixtures():
+    """Ensures synthetic fixtures exist on disk; generates them deterministically if missing."""
+    SYNTHETIC_FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
+    cardio_path = SYNTHETIC_FIXTURES_DIR / "cardiovascular_reference.csv"
+    diabetes_path = SYNTHETIC_FIXTURES_DIR / "diabetes_complications_reference.csv"
 
     if not cardio_path.exists():
         df_cardio = generate_cardiovascular_dataset(n_samples=400)
@@ -149,5 +150,5 @@ def ensure_reference_datasets():
 
 
 if __name__ == "__main__":
-    ensure_reference_datasets()
-    print("[SUCCESS] Reference datasets generated deterministically.")
+    ensure_synthetic_fixtures()
+    print("[SUCCESS] Synthetic test fixtures generated deterministically.")

@@ -14,8 +14,8 @@ from config import FEATURE_NAMES
 class ClinicalPreprocessor:
     """Deterministic preprocessor for tabular HealthTwin clinical feature vectors."""
 
-    def __init__(self):
-        self.feature_names: List[str] = list(FEATURE_NAMES)
+    def __init__(self, feature_names: Optional[List[str]] = None):
+        self.feature_names: List[str] = list(feature_names) if feature_names is not None else list(FEATURE_NAMES)
         self.means_: Dict[str, float] = {}
         self.scales_: Dict[str, float] = {}
         self.medians_: Dict[str, float] = {}
