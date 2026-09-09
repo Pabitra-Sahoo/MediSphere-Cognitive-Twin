@@ -38,7 +38,9 @@ class DatasetLoader:
         "250.6",  # Diabetic neuropathy / neurological manifestations
         "357.2",  # Neuropathy in diabetes
         "250.7",  # Diabetic peripheral circulatory disorders / PVD
-        "443",    # Other peripheral vascular disease
+        "443.81", # Peripheral angiopathy in diabetes
+        "443.9",  # Peripheral vascular disease, unspecified
+        "443",    # Other peripheral vascular disease (category code in truncated UCI data)
     )
 
     @classmethod

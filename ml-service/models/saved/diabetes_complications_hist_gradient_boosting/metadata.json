@@ -1,0 +1,155 @@
+{
+  "model_name": "diabetes_complications_hist_gradient_boosting",
+  "task_type": "DIABETES",
+  "algorithm": "HIST_GRADIENT_BOOSTING",
+  "version": "1.0.0-phase11",
+  "feature_contract": [
+    "age",
+    "gender",
+    "time_in_hospital",
+    "num_lab_procedures",
+    "num_procedures",
+    "num_medications",
+    "number_diagnoses",
+    "max_glu_serum",
+    "A1Cresult",
+    "insulin",
+    "diabetesMed"
+  ],
+  "target_column": "has_complication",
+  "random_seed": 42,
+  "decision_threshold": 0.57,
+  "risk_tiers": {
+    "low_max": 0.2,
+    "moderate_max": 0.5
+  },
+  "estimator_class": "HistGradientBoostingClassifier",
+  "estimator_params": {
+    "categorical_features": "from_dtype",
+    "class_weight": "balanced",
+    "early_stopping": "auto",
+    "interaction_cst": null,
+    "l2_regularization": 0.0,
+    "learning_rate": 0.05,
+    "loss": "log_loss",
+    "max_bins": 255,
+    "max_depth": null,
+    "max_features": 1.0,
+    "max_iter": 100,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 30,
+    "monotonic_cst": null,
+    "n_iter_no_change": 10,
+    "random_state": 42,
+    "scoring": "loss",
+    "tol": 1e-07,
+    "validation_fraction": 0.1,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "preprocessor_state": {
+    "feature_names": [
+      "age",
+      "gender",
+      "time_in_hospital",
+      "num_lab_procedures",
+      "num_procedures",
+      "num_medications",
+      "number_diagnoses",
+      "max_glu_serum",
+      "A1Cresult",
+      "insulin",
+      "diabetesMed"
+    ],
+    "means": {
+      "age": 65.97773597619181,
+      "gender": 0.4624627997080128,
+      "time_in_hospital": 4.411421191532371,
+      "num_lab_procedures": 43.121343141108426,
+      "num_procedures": 1.3409512044471896,
+      "num_medications": 16.038702341512717,
+      "number_diagnoses": 7.425838059408164,
+      "max_glu_serum": 0.092958616429895,
+      "A1Cresult": 0.36638778145881296,
+      "insulin": 0.8896204166432703,
+      "diabetesMed": 0.77150598012241
+    },
+    "scales": {
+      "age": 15.916072506968742,
+      "gender": 0.49858896758175386,
+      "time_in_hospital": 2.9915609018056655,
+      "num_lab_procedures": 19.691534097249857,
+      "num_procedures": 1.7078305135402652,
+      "num_medications": 8.139132014780097,
+      "number_diagnoses": 1.9288658236236784,
+      "max_glu_serum": 0.43597986659161075,
+      "A1Cresult": 0.8898047366204654,
+      "insulin": 1.0220976772585348,
+      "diabetesMed": 0.4198624807693223
+    },
+    "medians": {
+      "age": 65.0,
+      "gender": 0.0,
+      "time_in_hospital": 4.0,
+      "num_lab_procedures": 44.0,
+      "num_procedures": 1.0,
+      "num_medications": 15.0,
+      "number_diagnoses": 8.0,
+      "max_glu_serum": 0.0,
+      "A1Cresult": 0.0,
+      "insulin": 1.0,
+      "diabetesMed": 1.0
+    },
+    "is_fitted": true
+  },
+  "training_timestamp": "2026-09-09T06:33:48.265470+00:00",
+  "safety_disclaimer": "Model-estimated risk probabilities for academic research and educational demonstration only. Not a medical diagnosis.",
+  "dataset_metadata": {
+    "source": "UCI Diabetes 130-US Hospitals (1999-2008)",
+    "total_records": 101766,
+    "train_records": 71236,
+    "val_records": 15265,
+    "test_records": 15265,
+    "positive_prevalence": 0.1007
+  },
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "max_iter": 100,
+    "min_samples_leaf": 30
+  },
+  "metrics": {
+    "validation": {
+      "roc_auc": 0.6782,
+      "accuracy": 0.7624,
+      "precision": 0.1999,
+      "recall": 0.4528,
+      "f1": 0.2773,
+      "log_loss": 0.6281,
+      "brier_score": 0.2204,
+      "decision_threshold_used": 0.57,
+      "confusion_matrix": {
+        "tn": 10942,
+        "fp": 2786,
+        "fn": 841,
+        "tp": 696
+      }
+    },
+    "holdout_test": {
+      "roc_auc": 0.6688,
+      "accuracy": 0.7586,
+      "precision": 0.1876,
+      "recall": 0.4196,
+      "f1": 0.2593,
+      "log_loss": 0.6277,
+      "brier_score": 0.2202,
+      "decision_threshold_used": 0.57,
+      "confusion_matrix": {
+        "tn": 10935,
+        "fp": 2793,
+        "fn": 892,
+        "tp": 645
+      }
+    }
+  },
+  "training_duration_seconds": 1.1949
+}

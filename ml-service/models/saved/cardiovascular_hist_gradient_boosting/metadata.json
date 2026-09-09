@@ -1,0 +1,140 @@
+{
+  "model_name": "cardiovascular_hist_gradient_boosting",
+  "task_type": "CARDIOVASCULAR",
+  "algorithm": "HIST_GRADIENT_BOOSTING",
+  "version": "1.0.0-phase11",
+  "feature_contract": [
+    "age",
+    "gender",
+    "bmi",
+    "systolicBP",
+    "diastolicBP",
+    "heartRate",
+    "glucose",
+    "cholesterol"
+  ],
+  "target_column": "TenYearCHD",
+  "random_seed": 42,
+  "decision_threshold": 0.25,
+  "risk_tiers": {
+    "low_max": 0.2,
+    "moderate_max": 0.5
+  },
+  "estimator_class": "HistGradientBoostingClassifier",
+  "estimator_params": {
+    "categorical_features": "from_dtype",
+    "class_weight": "balanced",
+    "early_stopping": "auto",
+    "interaction_cst": null,
+    "l2_regularization": 0.0,
+    "learning_rate": 0.05,
+    "loss": "log_loss",
+    "max_bins": 255,
+    "max_depth": null,
+    "max_features": 1.0,
+    "max_iter": 100,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 20,
+    "monotonic_cst": null,
+    "n_iter_no_change": 10,
+    "random_state": 42,
+    "scoring": "loss",
+    "tol": 1e-07,
+    "validation_fraction": 0.1,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "preprocessor_state": {
+    "feature_names": [
+      "age",
+      "gender",
+      "bmi",
+      "systolicBP",
+      "diastolicBP",
+      "heartRate",
+      "glucose",
+      "cholesterol"
+    ],
+    "means": {
+      "age": 49.626347708894876,
+      "gender": 0.43160377358490565,
+      "bmi": 25.79828167115903,
+      "systolicBP": 132.51044474393532,
+      "diastolicBP": 82.94322776280323,
+      "heartRate": 75.95923180592992,
+      "glucose": 81.5239218328841,
+      "cholesterol": 236.99393530997304
+    },
+    "scales": {
+      "age": 8.567565215553618,
+      "gender": 0.49529986494261746,
+      "bmi": 4.131130037854541,
+      "systolicBP": 22.129509425273778,
+      "diastolicBP": 11.970914378777715,
+      "heartRate": 12.05708662796914,
+      "glucose": 22.27588519383892,
+      "cholesterol": 44.872572991587
+    },
+    "medians": {
+      "age": 49.0,
+      "gender": 0.0,
+      "bmi": 25.4,
+      "systolicBP": 128.0,
+      "diastolicBP": 82.0,
+      "heartRate": 75.0,
+      "glucose": 78.0,
+      "cholesterol": 234.0
+    },
+    "is_fitted": true
+  },
+  "training_timestamp": "2026-09-09T06:33:46.640626+00:00",
+  "safety_disclaimer": "Model-estimated risk probabilities for academic research and educational demonstration only. Not a medical diagnosis.",
+  "dataset_metadata": {
+    "source": "Framingham Heart Study Teaching Cohort",
+    "total_records": 4240,
+    "train_records": 2968,
+    "val_records": 636,
+    "test_records": 636,
+    "positive_prevalence": 0.1519
+  },
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "max_iter": 100,
+    "min_samples_leaf": 20
+  },
+  "metrics": {
+    "validation": {
+      "roc_auc": 0.6381,
+      "accuracy": 0.5142,
+      "precision": 0.2006,
+      "recall": 0.732,
+      "f1": 0.3149,
+      "log_loss": 0.5277,
+      "brier_score": 0.1768,
+      "decision_threshold_used": 0.25,
+      "confusion_matrix": {
+        "tn": 256,
+        "fp": 283,
+        "fn": 26,
+        "tp": 71
+      }
+    },
+    "holdout_test": {
+      "roc_auc": 0.6463,
+      "accuracy": 0.4969,
+      "precision": 0.2011,
+      "recall": 0.7732,
+      "f1": 0.3191,
+      "log_loss": 0.5448,
+      "brier_score": 0.182,
+      "decision_threshold_used": 0.25,
+      "confusion_matrix": {
+        "tn": 241,
+        "fp": 298,
+        "fn": 22,
+        "tp": 75
+      }
+    }
+  },
+  "training_duration_seconds": 0.4183
+}

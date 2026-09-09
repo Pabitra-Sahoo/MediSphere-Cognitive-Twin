@@ -15,7 +15,14 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 FIXTURES_DIR = DATA_DIR / "fixtures"
 SYNTHETIC_FIXTURES_DIR = FIXTURES_DIR / "synthetic_pipeline_test_data"
 MODELS_DIR = BASE_DIR / "models"
+SAVED_MODELS_DIR = MODELS_DIR / "saved"
 REGISTRY_DIR = BASE_DIR / "registry"
+
+# Categorical risk-tier display boundaries (strictly separated from binary decision threshold)
+DEFAULT_RISK_TIERS = {
+    "low_max": 0.20,        # P < 0.20 -> LOW
+    "moderate_max": 0.50,   # 0.20 <= P < 0.50 -> MODERATE; P >= 0.50 -> HIGH
+}
 
 # Deterministic random seed strictly enforced across all components
 RANDOM_SEED: int = int(os.getenv("RANDOM_SEED", "42"))

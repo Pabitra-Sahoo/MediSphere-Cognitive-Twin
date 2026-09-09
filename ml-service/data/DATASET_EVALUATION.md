@@ -89,6 +89,49 @@ The table below documents every feature across both authentic benchmarks against
 
 ---
 
+### 3.1 Diabetes Complication Label Audit & Clinical Rationale
+
+To ensure scientific and clinical validity, every ICD-9 diagnostic code family used to extract the positive secondary complication target (`has_complication == 1`) from inpatient encounter diagnoses (`diag_1`, `diag_2`, `diag_3`) has been evaluated:
+
+| ICD-9 Code Family | Clinical Description | Microvascular / Macrovascular Target | Pathophysiological Rationale & Attribution | Encounters Matching in UCI Raw Data |
+| :--- | :--- | :--- | :--- | :--- |
+| **`250.4x`** | Diabetes with renal manifestations | Microvascular (Nephropathy) | Hyperglycemia-induced glomerular basement membrane thickening, nodular glomerulosclerosis (Kimmelstiel-Wilson syndrome), and persistent proteinuria. Explicitly diabetes-attributable etiology code. | 1,828 |
+| **`585.x`** | Chronic kidney disease (CKD Stages 1–5, ESRD) | Microvascular (End-stage renal disease) | In a cohort with established diabetes, diabetic nephropathy is the single leading cause of CKD/ESRD in the US. Coded as secondary manifestation or staging of renal failure under ICD-9 dual coding guidelines. | 3,937 (all coded as `585` due to 3-digit truncation) |
+| **`250.5x`** | Diabetes with ophthalmic manifestations | Microvascular (Retinopathy / Maculopathy) | Pericyte dropout, retinal capillary microaneurysms, macular edema, ischemia, and neovascularization. Direct diabetes-attributable etiology code. | 577 |
+| **`362.0x`** | Diabetic retinopathy (background / proliferative) | Microvascular (Retinopathy) | Manifestation code paired with diabetes mellitus. Specific manifestation of microvascular damage to the retina. | 0 (hospital coders utilized `250.5` in this database) |
+| **`250.6x`** | Diabetes with neurological manifestations | Microvascular (Neuropathy) | Distal symmetric sensorimotor polyneuropathy, autonomic neuropathy, and mononeuritis multiplex caused by endoneurial microvascular ischemia and sorbitol pathway flux. Direct diabetes-attributable code. | 3,158 |
+| **`357.2`** | Polyneuropathy in diabetes | Microvascular (Neuropathy) | Specific secondary manifestation code for diabetic neuropathy. | 0 (hospital coders utilized `250.6` in this database) |
+| **`250.7x`** | Diabetes with peripheral circulatory disorders | Macrovascular / Microvascular (PVD / Angiopathy) | Severe peripheral arterial compromise, ischemic gangrene, and diabetic microangiopathy of lower extremities. Direct diabetes-attributable code. | 1,142 |
+| **`443.81`** | Peripheral angiopathy in diseases classified elsewhere | Macrovascular (Diabetic PVD) | Specifically designates peripheral angiopathy in diabetes when coded under ICD-9 guidelines. | 0 (truncated to 3-digit category `443`) |
+| **`443.9` / `443`** | Peripheral vascular disease (PVD), unspecified | Macrovascular (PVD) | In a cohort where 100% of encounters have confirmed diabetes, peripheral arterial disease is the cardinal macrovascular end-organ complication resulting from accelerated atherogenesis. | 390 (all coded as `443` due to 3-digit truncation) |
+
+#### Empirical Distribution
+* **Total Encounters:** 101,766
+* **Positive Count (`has_complication == 1`):** 10,245
+* **Negative Count (`has_complication == 0`):** 91,521
+* **Complication Prevalence:** 10.0672% (~10.07%)
+
+#### Examples of Positive Code Patterns
+* `diag_1 = "250.4"`, `diag_2 = "401"`, `diag_3 = "272"` $\rightarrow$ Diabetic nephropathy with comorbid hypertension/dyslipidemia.
+* `diag_1 = "585"`, `diag_2 = "250.0"`, `diag_3 = "428"` $\rightarrow$ Chronic kidney disease in patient with diabetes.
+* `diag_1 = "250.6"`, `diag_2 = "780"`, `diag_3 = "250.0"` $\rightarrow$ Diabetic neuropathy.
+* `diag_1 = "443"`, `diag_2 = "250.0"`, `diag_3 = "707"` $\rightarrow$ Peripheral vascular disease and diabetic ulceration.
+
+#### Examples of Non-Complication (Negative) Codes
+* `250`, `250.0`, `250.00`, `250.01`, `250.02`: Diabetes mellitus without mention of secondary complication.
+* `250.1`, `250.10`, `250.11`: Diabetic ketoacidosis (DKA — acute metabolic crisis, not chronic secondary end-organ damage).
+* `250.2`, `250.20`: Diabetes with hyperosmolarity (HHS — acute metabolic crisis).
+* `250.3`: Diabetes with other coma.
+* `401`, `401.9`: Essential hypertension (comorbid cardiovascular condition, not classified as secondary diabetic complication).
+* `414`, `414.01`: Coronary atherosclerosis (general CAD comorbidity).
+* `428`, `428.0`: Congestive heart failure.
+* `486`: Pneumonia.
+
+No labels are fabricated or artificially altered; positive labels represent authentic clinical secondary complications.
+
+
+---
+
 ## 4. Synthetic Pipeline Test Fixtures
 
 * **Location:** `ml-service/data/fixtures/synthetic_pipeline_test_data/`
