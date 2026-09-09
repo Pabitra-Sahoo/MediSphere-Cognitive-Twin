@@ -1,0 +1,187 @@
+{
+  "model_name": "cardiovascular_federated_logistic_regression",
+  "task_type": "CARDIOVASCULAR",
+  "algorithm": "FEDERATED_LOGISTIC_REGRESSION",
+  "version": "1.0.0-phase12",
+  "feature_contract": [
+    "age",
+    "gender",
+    "bmi",
+    "systolicBP",
+    "diastolicBP",
+    "heartRate",
+    "glucose",
+    "cholesterol"
+  ],
+  "target_column": "TenYearCHD",
+  "random_seed": 42,
+  "decision_threshold": 0.5,
+  "risk_tiers": {
+    "low_max": 0.2,
+    "moderate_max": 0.5
+  },
+  "federated_metadata": {
+    "framework": "Federated Learning / FedAvg simulation",
+    "simulation_type": "simulated federated training with client-local raw-data handling",
+    "aggregation_algorithm": "Weighted FedAvg (McMahan et al., 2017)",
+    "total_rounds": 3,
+    "clients": [
+      "hospital_alpha",
+      "clinic_beta",
+      "regional_gamma"
+    ],
+    "client_sample_counts": {
+      "hospital_alpha": 1187,
+      "clinic_beta": 1038,
+      "regional_gamma": 743
+    },
+    "client_weights": {
+      "hospital_alpha": 0.3999,
+      "clinic_beta": 0.3497,
+      "regional_gamma": 0.2503
+    },
+    "preprocessing_strategy": {
+      "source": "Frozen Phase 11 centralized baseline preprocessor",
+      "refit_during_federated": false,
+      "pooled_client_preprocessing": false,
+      "description": "The preprocessing transform is inherited/frozen from Phase 11. It is NOT refit during federated rounds. Clients apply the same frozen transform locally. Validation and holdout data use the same frozen transform. No Phase 12 pooled raw-client preprocessing occurs."
+    },
+    "convergence_analysis": {
+      "reason_for_round_metric_stability": "Local training uses L2-regularized Logistic Regression solved via L-BFGS. Because the L2 objective is strictly convex, deterministic L-BFGS converges to the unique local optimum in early iterations. Re-initialization from the convex combination of these local minima across identical client partitions leads to identical local minima upon convergence, producing mathematically identical validation metrics across consecutive rounds until early stopping terminates."
+    },
+    "round_history": [
+      {
+        "round": 1,
+        "participating_clients": [
+          "hospital_alpha",
+          "clinic_beta",
+          "regional_gamma"
+        ],
+        "total_participating_samples": 2968,
+        "val_loss": 0.6068,
+        "val_roc_auc": 0.7137,
+        "val_f1": 0.3669,
+        "val_recall": 0.6392,
+        "val_precision": 0.2573,
+        "val_accuracy": 0.6635
+      },
+      {
+        "round": 2,
+        "participating_clients": [
+          "hospital_alpha",
+          "clinic_beta",
+          "regional_gamma"
+        ],
+        "total_participating_samples": 2968,
+        "val_loss": 0.6068,
+        "val_roc_auc": 0.7137,
+        "val_f1": 0.3669,
+        "val_recall": 0.6392,
+        "val_precision": 0.2573,
+        "val_accuracy": 0.6635
+      },
+      {
+        "round": 3,
+        "participating_clients": [
+          "hospital_alpha",
+          "clinic_beta",
+          "regional_gamma"
+        ],
+        "total_participating_samples": 2968,
+        "val_loss": 0.6068,
+        "val_roc_auc": 0.7137,
+        "val_f1": 0.3669,
+        "val_recall": 0.6392,
+        "val_precision": 0.2573,
+        "val_accuracy": 0.6635
+      }
+    ]
+  },
+  "metrics": {
+    "validation": {
+      "roc_auc": 0.7137,
+      "accuracy": 0.6635,
+      "precision": 0.2573,
+      "recall": 0.6392,
+      "f1": 0.3669,
+      "log_loss": 0.6068,
+      "brier_score": 0.2104,
+      "decision_threshold_used": 0.5,
+      "confusion_matrix": {
+        "tn": 360,
+        "fp": 179,
+        "fn": 35,
+        "tp": 62
+      }
+    },
+    "holdout_test": {
+      "roc_auc": 0.7021,
+      "accuracy": 0.6447,
+      "precision": 0.2367,
+      "recall": 0.5979,
+      "f1": 0.3392,
+      "log_loss": 0.608,
+      "brier_score": 0.2106,
+      "decision_threshold_used": 0.5,
+      "confusion_matrix": {
+        "tn": 352,
+        "fp": 187,
+        "fn": 39,
+        "tp": 58
+      }
+    }
+  },
+  "centralized_baseline_comparison": {
+    "centralized_baseline_holdout": {
+      "roc_auc": 0.7,
+      "accuracy": 0.6242,
+      "precision": 0.2428,
+      "recall": 0.6907,
+      "f1": 0.3592,
+      "log_loss": 0.6127,
+      "brier_score": 0.2127,
+      "decision_threshold_used": 0.47,
+      "confusion_matrix": {
+        "tn": 330,
+        "fp": 209,
+        "fn": 30,
+        "tp": 67
+      }
+    },
+    "federated_holdout": {
+      "roc_auc": 0.7021,
+      "accuracy": 0.6447,
+      "precision": 0.2367,
+      "recall": 0.5979,
+      "f1": 0.3392,
+      "log_loss": 0.608,
+      "brier_score": 0.2106,
+      "decision_threshold_used": 0.5,
+      "confusion_matrix": {
+        "tn": 352,
+        "fp": 187,
+        "fn": 39,
+        "tp": 58
+      }
+    },
+    "delta_roc_auc": 0.0021,
+    "non_linear_benchmark_holdout": {
+      "roc_auc": 0.6463,
+      "accuracy": 0.4969,
+      "precision": 0.2011,
+      "recall": 0.7732,
+      "f1": 0.3191,
+      "log_loss": 0.5448,
+      "brier_score": 0.182,
+      "decision_threshold_used": 0.25,
+      "confusion_matrix": {
+        "tn": 241,
+        "fp": 298,
+        "fn": 22,
+        "tp": 75
+      }
+    }
+  },
+  "training_timestamp": "2026-09-09T12:38:41.323939+00:00",
+  "safety_disclaimer": "Model-estimated risk probabilities for academic research and educational demonstration only. Not a medical diagnosis."
+}
