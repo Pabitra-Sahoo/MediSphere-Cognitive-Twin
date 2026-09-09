@@ -1,0 +1,49 @@
+{
+  "task_type": "CARDIOVASCULAR",
+  "model_name": "cardiovascular_hist_gradient_boosting",
+  "cohort_size": 500,
+  "explanation_space": "mean_absolute_log_odds",
+  "global_feature_importance": [
+    {
+      "feature_name": "age",
+      "mean_abs_shap_log_odds": 0.6514,
+      "rank": 1
+    },
+    {
+      "feature_name": "gender",
+      "mean_abs_shap_log_odds": 0.317,
+      "rank": 2
+    },
+    {
+      "feature_name": "diastolicBP",
+      "mean_abs_shap_log_odds": 0.1987,
+      "rank": 3
+    },
+    {
+      "feature_name": "systolicBP",
+      "mean_abs_shap_log_odds": 0.1868,
+      "rank": 4
+    },
+    {
+      "feature_name": "cholesterol",
+      "mean_abs_shap_log_odds": 0.1761,
+      "rank": 5
+    },
+    {
+      "feature_name": "heartRate",
+      "mean_abs_shap_log_odds": 0.1481,
+      "rank": 6
+    },
+    {
+      "feature_name": "bmi",
+      "mean_abs_shap_log_odds": 0.1451,
+      "rank": 7
+    },
+    {
+      "feature_name": "glucose",
+      "mean_abs_shap_log_odds": 0.1381,
+      "rank": 8
+    }
+  ],
+  "safety_disclaimer": "Model feature contributions reflect statistical model behavior for academic research only. Not a medical diagnosis or clinical interpretation."
+}

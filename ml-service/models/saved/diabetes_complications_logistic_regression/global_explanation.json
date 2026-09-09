@@ -1,0 +1,64 @@
+{
+  "task_type": "DIABETES",
+  "model_name": "diabetes_complications_logistic_regression",
+  "cohort_size": 500,
+  "explanation_space": "mean_absolute_log_odds",
+  "global_feature_importance": [
+    {
+      "feature_name": "number_diagnoses",
+      "mean_abs_shap_log_odds": 0.2644,
+      "rank": 1
+    },
+    {
+      "feature_name": "insulin",
+      "mean_abs_shap_log_odds": 0.1832,
+      "rank": 2
+    },
+    {
+      "feature_name": "age",
+      "mean_abs_shap_log_odds": 0.1672,
+      "rank": 3
+    },
+    {
+      "feature_name": "diabetesMed",
+      "mean_abs_shap_log_odds": 0.0982,
+      "rank": 4
+    },
+    {
+      "feature_name": "gender",
+      "mean_abs_shap_log_odds": 0.0732,
+      "rank": 5
+    },
+    {
+      "feature_name": "time_in_hospital",
+      "mean_abs_shap_log_odds": 0.0622,
+      "rank": 6
+    },
+    {
+      "feature_name": "A1Cresult",
+      "mean_abs_shap_log_odds": 0.0411,
+      "rank": 7
+    },
+    {
+      "feature_name": "num_medications",
+      "mean_abs_shap_log_odds": 0.0268,
+      "rank": 8
+    },
+    {
+      "feature_name": "num_lab_procedures",
+      "mean_abs_shap_log_odds": 0.0057,
+      "rank": 9
+    },
+    {
+      "feature_name": "num_procedures",
+      "mean_abs_shap_log_odds": 0.0039,
+      "rank": 10
+    },
+    {
+      "feature_name": "max_glu_serum",
+      "mean_abs_shap_log_odds": 0.0031,
+      "rank": 11
+    }
+  ],
+  "safety_disclaimer": "Model feature contributions reflect statistical model behavior for academic research only. Not a medical diagnosis or clinical interpretation."
+}

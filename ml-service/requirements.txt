@@ -10,6 +10,7 @@ pydantic>=2.7.0,<3.0.0
 numpy>=1.26.0,<2.2.0
 pandas>=2.2.0,<2.3.0
 scikit-learn>=1.4.0,<1.7.0
+shap==0.52.0
 
 # HTTP client & utilities
 requests>=2.31.0,<3.0.0
