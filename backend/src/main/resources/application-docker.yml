@@ -16,3 +16,8 @@ spring:
 logging:
   level:
     com.medisphere: INFO
+
+ml-service:
+  base-url: ${ML_SERVICE_URL:http://ml-service:8000}
+  timeout-ms: ${ML_SERVICE_TIMEOUT_MS:5000}
+  internal-key: ${ML_SERVICE_INTERNAL_KEY:medisphere-dev-internal-key-change-in-prod}

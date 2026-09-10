@@ -37,6 +37,12 @@ jwt:
   # Token expiration time in milliseconds (default 24 hours)
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
+# ML Service Integration (Phase 14)
+ml-service:
+  base-url: ${ML_SERVICE_URL:http://localhost:8000}
+  timeout-ms: ${ML_SERVICE_TIMEOUT_MS:5000}
+  internal-key: ${ML_SERVICE_INTERNAL_KEY:medisphere-dev-internal-key-change-in-prod}
+
 # Logging
 logging:
   level:
@@ -44,4 +50,3 @@ logging:
     org.springframework.web: INFO
     org.springframework.data.mongodb: WARN
     org.apache.kafka: WARN
-

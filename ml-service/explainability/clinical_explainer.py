@@ -84,7 +84,7 @@ class ClinicalExplainer:
 
         feature_names = metadata.get("feature_contract", preprocessor.feature_names)
         task_type = metadata.get("task_type", "CARDIOVASCULAR")
-        model_name = metadata.get("model_name", in_path.name)
+        model_name = in_path.name
         model_version = metadata.get("version", "1.0.0")
         decision_threshold = metadata.get("decision_threshold", 0.50)
         risk_tiers = metadata.get("risk_tiers", DEFAULT_RISK_TIERS)
@@ -166,13 +166,20 @@ class ClinicalExplainer:
         attributions = []
         for j, feat_name in enumerate(self.feature_names):
             raw_val = df[feat_name].iloc[0]
-            val_float = float(raw_val) if pd.notna(raw_val) else 0.0
+            if pd.isna(raw_val):
+                val_repr = 0.0
+            else:
+                try:
+                    val_repr = float(raw_val)
+                except (ValueError, TypeError):
+                    val_repr = str(raw_val)
+
             shap_float = float(shap_vec[j])
 
             direction = "INCREASES_RISK" if shap_float > 0 else "DECREASES_RISK"
             attributions.append({
                 "feature_name": feat_name,
-                "feature_value": val_float,
+                "feature_value": val_repr,
                 "shap_value_log_odds": round(shap_float, 4),
                 "direction": direction,
                 "abs_magnitude": abs(shap_float),

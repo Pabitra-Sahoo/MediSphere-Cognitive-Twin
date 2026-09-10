@@ -156,3 +156,45 @@ def get_schema_summary() -> Dict[str, Any]:
             "and educational demonstration only. They do not constitute a medical diagnosis."
         ),
     }
+
+
+class RiskInferenceRequest(BaseModel):
+    """De-identified runtime feature vector submitted by Spring Boot for prediction and explanation."""
+    task_type: str = Field(..., description="Target clinical task: CARDIOVASCULAR or DIABETES")
+    model_name: Optional[str] = Field(None, description="Optional model override; defaults to federated global consensus")
+    features: Dict[str, Any] = Field(..., description="Map of feature names to clinical numeric or categorical values")
+
+
+class FeatureAttributionItem(BaseModel):
+    """Local SHAP feature contribution in additive log-odds space."""
+    feature_name: str
+    feature_value: Any
+    shap_value_log_odds: float
+    direction: str
+    rank: int
+
+
+class RiskInferenceResponse(BaseModel):
+    """Unified runtime risk probability and local SHAP feature attribution response."""
+    task_type: str
+    model_name: str
+    model_version: str
+    model_estimated_risk_probability: float
+    estimated_risk_tier: str
+    decision_threshold: float
+    explanation_space: str = "log_odds"
+    base_value_log_odds: float
+    total_log_odds: float
+    feature_attributions: List[FeatureAttributionItem]
+    safety_disclaimer: str
+
+
+class ModelSummaryItem(BaseModel):
+    """Metadata summary of a registered clinical model."""
+    model_name: str
+    task_type: str
+    algorithm: str
+    version: str
+    decision_threshold: float
+    feature_contract: List[str]
+    is_production_default: bool

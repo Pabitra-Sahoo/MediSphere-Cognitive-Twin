@@ -64,12 +64,13 @@ services:
       context: ./ml-service
       dockerfile: Dockerfile
     container_name: medisphere-ml-service
-    ports:
-      - "${ML_SERVICE_PORT:-8000}:8000"
+    expose:
+      - "8000"
     environment:
       - PORT=8000
       - RANDOM_SEED=42
       - PYTHONUNBUFFERED=1
+      - ML_SERVICE_INTERNAL_KEY=${ML_SERVICE_INTERNAL_KEY:-medisphere-dev-internal-key-change-in-prod}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s

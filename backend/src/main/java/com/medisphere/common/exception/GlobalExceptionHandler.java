@@ -172,6 +172,41 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles missing clinical data required for ML inference → 422 Unprocessable Entity.
+     */
+    @ExceptionHandler(com.medisphere.risk.exception.InsufficientClinicalDataException.class)
+    public ResponseEntity<ApiError> handleInsufficientClinicalData(
+            com.medisphere.risk.exception.InsufficientClinicalDataException ex,
+            HttpServletRequest request) {
+        log.warn("Insufficient clinical data at {}: {}", request.getRequestURI(), ex.getMessage());
+        ApiError error = new ApiError(
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "Unprocessable Entity",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ex.getMissingFeatures()
+        );
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+
+    /**
+     * Handles ML service timeout, down, or communication failure → 503 Service Unavailable.
+     */
+    @ExceptionHandler(com.medisphere.risk.exception.MlServiceUnavailableException.class)
+    public ResponseEntity<ApiError> handleMlServiceUnavailable(
+            com.medisphere.risk.exception.MlServiceUnavailableException ex,
+            HttpServletRequest request) {
+        log.error("ML service unavailable at {}: {}", request.getRequestURI(), ex.getMessage());
+        ApiError error = new ApiError(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "Service Unavailable",
+                "Clinical risk estimation service is currently unreachable or timed out.",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+    }
+
+    /**
      * Catch-all for unhandled exceptions → 500.
      */
     @ExceptionHandler(Exception.class)
